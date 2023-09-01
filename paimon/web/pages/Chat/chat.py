@@ -1,8 +1,12 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
 import datetime
+import os
 import streamlit as st
+from configs import PROMPT_TEMPLATE
+from knowledge_base import knowledge_vector_store
 from .instruction_mode_chat import InstructionModeChat
+from web.pages.Knowledge.knowledge import knowledge
 
 
 class Chat(InstructionModeChat):
@@ -24,6 +28,18 @@ class Chat(InstructionModeChat):
                     if not self.instruction_mode:
                         st.toast("指令模式已关闭")
                 else:
+                    knowledge_files = knowledge.load_files_info()
+                    if knowledge_files:
+                        vector_store_dir_list = [
+                            os.path.join(knowledge.vector_store_root_dir, knowledge.current_embedding_name,
+                                         knowledge.selected_kb, x) for x in knowledge_files.keys()]
+                        prompt, docs = knowledge_vector_store.generate_knowledge_based_prompt(
+                            embedding_model_name=knowledge.current_embedding_name,
+                            query=prompt,
+                            vector_store_dir_list=vector_store_dir_list,
+                            prompt_template=PROMPT_TEMPLATE)
+                        print(prompt)
+                        print(docs)
                     with st.spinner("正在思考..."):
                         self.chat_bot.answer(prompt, model_name=self.current_llm_name,
                                              history_type=self.chat_bot.history_types.conversation,

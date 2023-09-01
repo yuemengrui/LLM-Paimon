@@ -3,7 +3,8 @@
 import os
 import streamlit as st
 from web.pages.Chat.chat import chat
-from web.pages.instructionSet import instruction_set
+from web.pages.InstructionSet.instructionSet import instruction_set
+from web.pages.Knowledge.knowledge import knowledge
 from streamlit_option_menu import option_menu
 
 if __name__ == '__main__':
@@ -27,6 +28,10 @@ if __name__ == '__main__':
         "Paimon指令集": {
             "icon": "cpu",
             "func": instruction_set.page,
+        },
+        "知识库管理": {
+            "icon": "hdd",
+            "func": knowledge.page,
         },
     }
 
