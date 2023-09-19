@@ -37,7 +37,9 @@ async def log_requests(request, call_next):
     logger.info(f"end request {request.method} {request.url.path} {cost:.3f}s")
     return response
 
+from info.libs.Knowledge_Base.local_knowledge_handlers.local_knowledge_vector_store import KnowledgeVectorStore
 
+knowledge_vector_store = KnowledgeVectorStore(logger=logger)
 
 from info.modules import register_router
 

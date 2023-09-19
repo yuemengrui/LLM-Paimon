@@ -7,7 +7,7 @@ from info import logger
 import requests
 
 
-def llm_chat(prompt: str, model_name: str = "", history: List = [], generation_configs: dict = {}, stream: bool = True):
+def servers_llm_chat(prompt: str, model_name: str = "", history: List = [], generation_configs: dict = {}, stream: bool = True):
     req_data = {
         "model_name": model_name,
         "prompt": prompt,
@@ -28,7 +28,8 @@ def llm_chat(prompt: str, model_name: str = "", history: List = [], generation_c
         response = requests.post(url=API_LLM_CHAT, json=req_data)
         return response
 
-def token_count(prompt:str, model_name: str = ""):
+
+def servers_token_count(prompt:str, model_name: str = ""):
     req_data = {
         "model_name": model_name,
         "prompt": prompt
@@ -39,7 +40,7 @@ def token_count(prompt:str, model_name: str = ""):
     return response.json()
 
 
-def get_llm_list():
+def servers_get_llm_list():
     response = requests.get(url=API_LLM_MODEL_LIST)
     try:
         return response.json()['data']['mode_list']
@@ -48,7 +49,7 @@ def get_llm_list():
         return []
 
 
-def get_embedding_model_list():
+def servers_get_embedding_model_list():
     response = requests.get(url=API_EMBEDDING_MODEL_LIST)
     try:
         return response.json()['data']['mode_list']
@@ -57,7 +58,7 @@ def get_embedding_model_list():
         return []
 
 
-def embedding_text(sentences: List[str], model_name: str = ""):
+def servers_embedding_text(sentences: List[str], model_name: str = ""):
     req_data = {
         "model_name": model_name,
         "sentences": sentences
