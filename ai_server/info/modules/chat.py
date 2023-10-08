@@ -1,69 +1,98 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-from fastapi import APIRouter, Request
-from info import logger, limiter
-from info.configs.base_configs import API_LIMIT
-from .protocol import ChatRequest, TokenCountRequest, ModelListResponse, ErrorResponse, BaseResponse
+import json
+import time
+import requests
+from sqlalchemy.orm import Session
+from fastapi import APIRouter, Request, Depends
+from info.utils.Authentication import verify_token
+from info import logger, limiter, get_db
+from info.configs.base_configs import API_LIMIT, LLM_SERVER_APIS
+from .protocol import ChatRequest, TokenCountRequest, ErrorResponse
 from fastapi.responses import JSONResponse, StreamingResponse
+from info.models import ChatMessageRecord
 from info.utils.response_code import RET, error_map
 
 router = APIRouter()
 
 
-@router.api_route(path='/ai/llm/list', methods=['GET'], response_model=ModelListResponse, summary="获取支持的llm列表")
+@router.api_route(path='/ai/llm/list', methods=['GET'], summary="获取支持的llm列表")
 @limiter.limit(API_LIMIT['model_list'])
-def support_llm_list(request: Request):
-    return JSONResponse(
-        ModelListResponse(errcode=RET.OK, errmsg=error_map[RET.OK], data={"model_list": list(llm_dict.keys())}).dict())
+def support_llm_list(request: Request, user_id=Depends(verify_token)):
+    return requests.get(url=LLM_SERVER_APIS['model_list'])
 
 
-@router.api_route(path='/ai/llm/chat', methods=['POST'], summary="Chat")
+@router.api_route('/ai/llm/chat', methods=['POST'], summary="Chat")
 @limiter.limit(API_LIMIT['chat'])
-def llm_chat(chat_req: ChatRequest, request: Request):
-    logger.info(str(chat_req.dict()))
+def llm_chat(chat_req: ChatRequest, request: Request, db: Session = Depends(get_db), user_id=Depends(verify_token)):
+    logger.info(str(chat_req.dict()) + ' user_id: {}'.format(user_id))
+    start = time.time()
+    new_message_user = ChatMessageRecord()
+    new_message_user.chat_id = chat_req.chat_id
+    new_message_user.uid = chat_req.uid
+    new_message_user.role = 'user'
+    new_message_user.content = chat_req.prompt
+    new_message_user.llm_name = chat_req.model_name
 
-    model_name_list = list(llm_dict.keys())
-    if chat_req.model_name is None or chat_req.model_name not in model_name_list:
-        chat_req.model_name = model_name_list[0]
-
-    token_counter_resp = token_counter(chat_req.model_name, chat_req.prompt)
-    if not token_counter_resp[0]:
-        return JSONResponse(ErrorResponse(errcode=RET.TOKEN_OVERFLOW,
-                                          errmsg=error_map[
-                                                     RET.TOKEN_OVERFLOW] + u"当前prompt token:{} 支持的最大token:{}".format(
-                                              token_counter_resp[1], token_counter_resp[2])).dict(), status_code=500)
+    try:
+        db.add(new_message_user)
+        db.commit()
+    except Exception as e:
+        logger.error({'DB ERROR': e})
+        db.rollback()
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
 
     if chat_req.stream:
-        return StreamingResponse(llm_generate(model_name=chat_req.model_name,
-                                              prompt=chat_req.prompt,
-                                              history=chat_req.history,
-                                              stream=True,
-                                              **chat_req.generation_configs), media_type="text/event-stream")
+        resp = requests.post(url=LLM_SERVER_APIS['chat'], json=chat_req.dict(), stream=True)
+        if 'event-stream' in resp.headers.get('content-type'):
+            def stream_generate():
+                for line in resp.iter_content(chunk_size=None):
+                    yield line
+
+                res = json.loads(line.decode('utf-8'))
+                new_message_assistant = ChatMessageRecord()
+                new_message_assistant.chat_id = chat_req.chat_id
+                new_message_assistant.uid = chat_req.answer_uid
+                new_message_assistant.role = 'assistant'
+                new_message_assistant.content = res['answer']
+                new_message_assistant.llm_name = res['model_name']
+                new_message_assistant.response = res
+                new_message_assistant.time_cost = f"{time.time() - start:.3f}s"
+
+                try:
+                    db.add(new_message_assistant)
+                    db.commit()
+                except Exception as e:
+                    logger.error({'DB ERROR': e})
+                    db.rollback()
+
+            return StreamingResponse(stream_generate(), media_type="text/event-stream")
+        else:
+            return JSONResponse(resp.json())
 
     else:
-        resp = llm_generate(model_name=chat_req.model_name,
-                            prompt=chat_req.prompt,
-                            history=chat_req.history,
-                            stream=False,
-                            **chat_req.generation_configs)
-        return JSONResponse(BaseResponse(errcode=RET.OK, errmsg=error_map[RET.OK], data=resp.dict()).dict())
+        resp = requests.post(url=LLM_SERVER_APIS['chat'], json=chat_req.dict()).json()
+
+        new_message_assistant = ChatMessageRecord()
+        new_message_assistant.chat_id = chat_req.chat_id
+        new_message_assistant.uid = chat_req.answer_uid
+        new_message_assistant.role = 'assistant'
+        new_message_assistant.content = resp['data']['answer']
+        new_message_assistant.llm_name = resp['data']['model_name']
+        new_message_assistant.response = resp['data']
+        try:
+            db.add(new_message_assistant)
+            db.commit()
+        except Exception as e:
+            logger.error({'DB ERROR': e})
+            db.rollback()
+            return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+        return JSONResponse(resp)
 
 
-@router.api_route(path='/ai/llm/token_count', methods=['POST'], summary="token count")
+@router.api_route('/ai/llm/token_count', methods=['POST'], summary="token count")
 @limiter.limit(API_LIMIT['token_count'])
 def count_token(token_count_req: TokenCountRequest, request: Request):
     logger.info(str(token_count_req.dict()))
 
-    model_name_list = list(llm_dict.keys())
-    if token_count_req.model_name is None or token_count_req.model_name not in model_name_list:
-        token_count_req.model_name = model_name_list[0]
-
-    token_counter_resp = token_counter(token_count_req.model_name, token_count_req.prompt)
-
-    return JSONResponse(BaseResponse(errcode=RET.OK, errmsg=error_map[RET.OK],
-                                     data={"model_name": token_count_req.model_name,
-                                           "prompt": token_count_req.prompt,
-                                           "prompt_tokens": token_counter_resp[1]
-                                           }
-                                     ).dict()
-                        )
+    return JSONResponse(requests.post(url=LLM_SERVER_APIS['token_counter'], json=token_count_req.json()).json())

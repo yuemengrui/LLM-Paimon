@@ -2,19 +2,25 @@
 # @Author : YueMengRui
 
 FASTAPI_HOST = '0.0.0.0'
-FASTAPI_PORT = 5000
+FASTAPI_PORT = 10000
 
-PREFIX_API_LLM_BASE = 'http://127.0.0.1:5000'
-API_LLM_MODEL_LIST = PREFIX_API_LLM_BASE + '/ai/llm/list'
-API_LLM_CHAT = PREFIX_API_LLM_BASE + '/ai/llm/chat'
-API_TOKEN_COUNT = PREFIX_API_LLM_BASE + '/ai/llm/token_count'
-API_EMBEDDING_MODEL_LIST = PREFIX_API_LLM_BASE + '/ai/embedding/model/list'
-API_TEXT_EMBEDDING = PREFIX_API_LLM_BASE + '/ai/embedding/text'
+SECRET_KEY = 'llm-paimon'
+TOKEN_EXPIRES = 12 * 60 * 60
 
-API_OCR_GENERAL = 'http://127.0.0.1:6000/ai/ocr/general'
+USERNAME_FILTER = ['administer', 'administrator']
+
+################
+LLM_SERVER_PREFIX = ''
+LLM_SERVER_APIS = {
+    'model_list': LLM_SERVER_PREFIX + '/ai/llm/list',
+    'token_counter': LLM_SERVER_PREFIX + '/ai/llm/token_count',
+    'chat': LLM_SERVER_PREFIX + '/ai/llm/chat'
+}
+################
 
 # API LIMIT
 API_LIMIT = {
+    "auth": "120/minute",
     "model_list": "120/minute",
     "chat": "15/minute",
     "token_count": "60/minute",

@@ -3,7 +3,7 @@
 from .base_chat import BaseChat
 from api_servers import get_llm_name_list, get_embedding_model_name_list
 
-INSTRUCTION_SET = ["@当前模型", "@切换大模型", "@切换embedding模型"]
+INSTRUCTION_SET = ["@当前模型", "@切换大模型", "@切换embedding模型", "@知识库"]
 
 
 class InstructionModeChat(BaseChat):
@@ -102,6 +102,13 @@ class InstructionModeChat(BaseChat):
                     model_name=self.current_llm_name,
                     history_len=0)
                 return
+        elif self.current_instruction == '@知识库':
+            self.knowledge_chat = not self.knowledge_chat
+            self.chat_bot.ai_say(f"知识库已{'开启' if self.knowledge_chat else '关闭'}",
+                                 history_type=self.chat_bot.history_types.instruction)
+            self.instruction_mode = False
+            self.current_instruction = None
+            return
 
         self.chat_bot.answer(self.prompt_template.format("抱歉，我暂时无法理解您的指令，可以再确切地告诉我一遍吗？"),
                              history_type=self.chat_bot.history_types.instruction,

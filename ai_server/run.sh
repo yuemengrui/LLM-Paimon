@@ -1,1 +1,2 @@
-CUDA_VISIBLE_DEVICES=0 nohup python manage_llm_paimon.py &
+# prod
+CUDA_VISIBLE_DEVICES=0 nphup python manage_llm_paimon.py &

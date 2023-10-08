@@ -55,7 +55,7 @@ class KnowledgeVectorStore:
         else:
             return False
 
-    def get_related_docs(self, embedding, vector_store_dir_list, knowledge_chunk_size=512, knowledge_chunk_connect=True,
+    def get_related_docs(self, embedding, vector_store_dir_list, knowledge_chunk_size=300, knowledge_chunk_connect=False,
                          vector_search_top_k=10, **kwargs):
 
         if len(vector_store_dir_list) == 0:

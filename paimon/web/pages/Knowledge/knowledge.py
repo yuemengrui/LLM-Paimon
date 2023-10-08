@@ -25,6 +25,7 @@ def config_aggrid(
     gb = GridOptionsBuilder.from_dataframe(df)
     for (col, header), kw in columns.items():
         gb.configure_column(col, header, wrapHeaderText=True, **kw)
+    gb.configure_pagination(enabled=True, paginationAutoPageSize=True, paginationPageSize=20)
     gb.configure_selection(
         selection_mode=selection_mode,
         use_checkbox=use_checkbox,

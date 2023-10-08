@@ -1,5 +1,4 @@
 # *_*coding:utf-8 *_*
-# @Author : YueMengRui
 import uvicorn
 from info import app
 from info.configs import *
