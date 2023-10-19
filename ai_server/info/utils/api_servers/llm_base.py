@@ -7,55 +7,34 @@ from info import logger
 import requests
 
 
-def servers_llm_chat(prompt: str, model_name: str = "", history: List = [], generation_configs: dict = {}, stream: bool = True):
+def servers_llm_chat(prompt, model_name: str = "", history: list = [], generation_configs: dict = {}):
     req_data = {
         "model_name": model_name,
         "prompt": prompt,
         "history": history,
         "generation_configs": generation_configs,
-        "stream": stream
+        "stream": False
     }
+    resp = requests.post(url=LLM_SERVER_APIS['chat'], json=req_data)
 
-    if stream:
-        def stream_chat():
-            response =  requests.post(url=API_LLM_CHAT, json=req_data)
-            for chunk in response.iter_content(chunk_size=None):
-                yield chunk.decode('utf-8')
-
-        return stream_chat()
-
-    else:
-        response = requests.post(url=API_LLM_CHAT, json=req_data)
-        return response
+    return resp.json()['data']['answer']
 
 
-def servers_token_count(prompt:str, model_name: str = ""):
+def servers_token_count(prompt: str, model_name: str = ""):
     req_data = {
         "model_name": model_name,
         "prompt": prompt
     }
 
-    response = requests.post(url=API_TOKEN_COUNT, json=req_data)
-
-    return response.json()
+    return requests.post(url=LLM_SERVER_APIS['token_counter'], json=req_data)
 
 
 def servers_get_llm_list():
-    response = requests.get(url=API_LLM_MODEL_LIST)
-    try:
-        return response.json()['data']['mode_list']
-    except:
-        logger.info(f"get llm list error: {response.text}")
-        return []
+    return requests.get(url=LLM_SERVER_APIS['model_list'])
 
 
 def servers_get_embedding_model_list():
-    response = requests.get(url=API_EMBEDDING_MODEL_LIST)
-    try:
-        return response.json()['data']['mode_list']
-    except:
-        logger.info(f"get embedding model list error: {response.text}")
-        return []
+    return requests.get(url=LLM_SERVER_APIS['embedding_model_list'])
 
 
 def servers_embedding_text(sentences: List[str], model_name: str = ""):
@@ -64,12 +43,4 @@ def servers_embedding_text(sentences: List[str], model_name: str = ""):
         "sentences": sentences
     }
 
-    response = requests.post(url=API_TEXT_EMBEDDING, json=req_data)
-
-    return response.json()
-
-
-
-
-
-
+    return requests.post(url=LLM_SERVER_APIS['embedding_text'], json=req_data)

@@ -6,6 +6,7 @@ import base64
 import requests
 import numpy as np
 from info.configs.base_configs import API_OCR_GENERAL
+from info import logger
 from typing import Any, List, Optional
 from langchain.docstore.document import Document
 from info.libs.Knowledge_Base.text_splitter.chinese_text_splitter import ChineseTextSplitter
@@ -46,7 +47,7 @@ def get_ocr_res(image):
         text = ''.join(text_list)
         return text
     except Exception as e:
-        print(str({'ocr_error': e}) + '\n')
+        logger.error({'ocr_error': e})
         return ''
 
 
@@ -72,7 +73,7 @@ class PDFOCRLoader(BasePDFLoader):
                 pm = doc[i].get_pixmap(matrix=trans)
                 page_text = get_ocr_res(pm.tobytes())
             except Exception as e:
-                print(str({'pdf_image_ocr_error': e}) + '\n')
+                logger.error({'pdf_image_ocr_error': e})
                 page_text = ''
 
             docs.append(Document(page_content=page_text,
@@ -93,8 +94,12 @@ def check_pdf_can_extract(pdf_path):
     return False
 
 
-def load_file(filepath, pdf=False):
-    if filepath.lower().endswith(".pdf"):
+def load_file(filepath, ext=None, pdf=False):
+    logger.info({'load_file': {'file_path': filepath, 'ext': ext}})
+    if not ext:
+        ext = filepath.lower().split('.')[-1]
+
+    if ext == 'pdf':
         if check_pdf_can_extract(filepath):
             loader = PyMuPDFLoader(filepath)
             pdf = True
@@ -102,15 +107,16 @@ def load_file(filepath, pdf=False):
             loader = PDFOCRLoader(filepath)
             pdf = True
     else:
-        ext = filepath.lower().split('.')[-1]
         if ext in LOADER_MAPPING:
             loader_class, loader_args = LOADER_MAPPING[ext]
             loader = loader_class(filepath, **loader_args)
         else:
-            print(str({'Unsupported file extension': '{}'.format(ext)}) + '\n')
+            logger.warning({'Unsupported file extension': '{}'.format(ext)})
             loader = UnstructuredFileLoader(filepath, mode="elements")
 
     textsplitter = ChineseTextSplitter(pdf=pdf)
     docs = loader.load_and_split(text_splitter=textsplitter)
+
+    logger.info({'loader': loader})
 
     return docs

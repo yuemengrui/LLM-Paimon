@@ -5,23 +5,26 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from .db_mysql import SessionLocal, engine
+from .mysql_models import Base
+from .db_milvus import MilvusDB
 from info.utils.logger import MyLogger
-from .db import SessionLocal, engine
-from .models import Base
 
 logger = MyLogger()
 
 Base.metadata.create_all(bind=engine)
 
+milvus_db = MilvusDB(logger=logger)
 
-async def get_db():
+
+async def get_mysql_db():
     try:
-        db = SessionLocal()
-        yield db
+        mysql_db = SessionLocal()
+        yield mysql_db
     except Exception as e:
         logger.error(e)
     finally:
-        db.close()
+        mysql_db.close()
 
 
 limiter = Limiter(key_func=lambda *args, **kwargs: '127.0.0.1')

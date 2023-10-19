@@ -10,6 +10,15 @@ class ErrorResponse(BaseModel):
     errmsg: str
 
 
+class FileUploadResponse(BaseModel):
+    file_hash: str
+    file_url: str
+    file_name: str
+    file_size: int
+    file_type: str
+    file_ext: str = Field(default='')
+
+
 class AuthRequest(BaseModel):
     username: str
     password: str
@@ -52,6 +61,11 @@ class TokenCountRequest(BaseModel):
 class AppCreateRequest(BaseModel):
     name: str
     llm_name: str
+    kb_id: int = Field(default=None)
+
+
+class AppDeleteRequest(BaseModel):
+    app_id: int
 
 
 class AppChatListRequest(BaseModel):
@@ -60,8 +74,36 @@ class AppChatListRequest(BaseModel):
 
 class AppChatCreateRequest(BaseModel):
     app_id: int
-    name: str = Field(default='新对话')
+    name: str = Field(default=None)
 
 
 class AppChatMessageListRequest(BaseModel):
     chat_id: int
+
+
+class KBCreateRequest(BaseModel):
+    name: str
+    embedding_model_list: List[str]
+
+
+class KBDeleteRequest(BaseModel):
+    kb_id: int
+
+
+class KBDataListRequest(BaseModel):
+    kb_id: int
+
+
+class KBDataImportOne(BaseModel):
+    file_hash: str
+    file_name: str
+    file_url: str
+    file_size: int
+    file_type: str
+    file_ext: str = Field(default='')
+
+
+class KBDataImportRequest(BaseModel):
+    method_id: int
+    kb_id: int
+    files: List[KBDataImportOne]

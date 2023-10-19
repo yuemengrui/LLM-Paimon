@@ -6,93 +6,135 @@ import requests
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Request, Depends
 from info.utils.Authentication import verify_token
-from info import logger, limiter, get_db
+from info import logger, limiter, get_mysql_db
 from info.configs.base_configs import API_LIMIT, LLM_SERVER_APIS
 from .protocol import ChatRequest, TokenCountRequest, ErrorResponse
 from fastapi.responses import JSONResponse, StreamingResponse
-from info.models import ChatMessageRecord
+from info.mysql_models import ChatMessageRecord, ChatRecord, MultiQueryRetriever
 from info.utils.response_code import RET, error_map
+from info.utils.kb.prompt_handler import get_final_prompt
+from info.utils.api_servers.llm_base import servers_get_llm_list, servers_token_count
 
 router = APIRouter()
 
 
 @router.api_route(path='/ai/llm/list', methods=['GET'], summary="获取支持的llm列表")
 @limiter.limit(API_LIMIT['model_list'])
-def support_llm_list(request: Request, user_id=Depends(verify_token)):
-    return requests.get(url=LLM_SERVER_APIS['model_list'])
+def support_llm_list(request: Request,
+                     user_id=Depends(verify_token)
+                     ):
+    return JSONResponse(servers_get_llm_list().json())
 
 
 @router.api_route('/ai/llm/chat', methods=['POST'], summary="Chat")
 @limiter.limit(API_LIMIT['chat'])
-def llm_chat(chat_req: ChatRequest, request: Request, db: Session = Depends(get_db), user_id=Depends(verify_token)):
-    logger.info(str(chat_req.dict()) + ' user_id: {}'.format(user_id))
+def llm_chat(request: Request,
+             req: ChatRequest,
+             mysql_db: Session = Depends(get_mysql_db),
+             user_id=Depends(verify_token)
+             ):
+    logger.info(str(req.dict()) + ' user_id: {}'.format(user_id))
     start = time.time()
     new_message_user = ChatMessageRecord()
-    new_message_user.chat_id = chat_req.chat_id
-    new_message_user.uid = chat_req.uid
+    new_message_user.chat_id = req.chat_id
+    new_message_user.uid = req.uid
     new_message_user.role = 'user'
-    new_message_user.content = chat_req.prompt
-    new_message_user.llm_name = chat_req.model_name
+    new_message_user.content = req.prompt
+    new_message_user.llm_name = req.model_name
+
+    chat = mysql_db.query(ChatRecord).get(req.chat_id)
+    if not chat.name:
+        chat.dynamic_name = req.prompt[:8]
 
     try:
-        db.add(new_message_user)
-        db.commit()
+        mysql_db.add(new_message_user)
+        mysql_db.commit()
     except Exception as e:
         logger.error({'DB ERROR': e})
-        db.rollback()
+        mysql_db.rollback()
         return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
 
-    if chat_req.stream:
-        resp = requests.post(url=LLM_SERVER_APIS['chat'], json=chat_req.dict(), stream=True)
+    prompt, related_docs, msg = get_final_prompt(prompt=req.prompt, app_id=req.app_id, mysql_db=mysql_db)
+    logger.info(f"prompt: {prompt}")
+    req_data = {
+        "model_name": req.model_name,
+        "prompt": prompt,
+        "history": req.history,
+        "generation_configs": req.generation_configs,
+        "stream": False
+    }
+    if req.stream:
+        req_data.update({"stream": True})
+        resp = requests.post(url=LLM_SERVER_APIS['chat'], json=req_data, stream=True)
         if 'event-stream' in resp.headers.get('content-type'):
             def stream_generate():
                 for line in resp.iter_content(chunk_size=None):
-                    yield line
+                    res = json.loads(line.decode('utf-8'))
+                    res['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
+                    retrieval = {}
+                    retrieval.update({'sources': related_docs})
+                    retrieval.update({'sources_len': sum([len(x['related_texts'])for x in related_docs])})
+                    retrieval.update(msg)
+                    res.update({'retrieval': retrieval})
+                    yield json.dumps(res, ensure_ascii=False)
 
-                res = json.loads(line.decode('utf-8'))
                 new_message_assistant = ChatMessageRecord()
-                new_message_assistant.chat_id = chat_req.chat_id
-                new_message_assistant.uid = chat_req.answer_uid
+                new_message_assistant.chat_id = req.chat_id
+                new_message_assistant.uid = req.answer_uid
                 new_message_assistant.role = 'assistant'
                 new_message_assistant.content = res['answer']
                 new_message_assistant.llm_name = res['model_name']
                 new_message_assistant.response = res
-                new_message_assistant.time_cost = f"{time.time() - start:.3f}s"
+                if 'MultiQueryRetriever' in msg:
+                    new_message_assistant.is_multiQueryRetriever_enabled = True
+
+                mysql_db.add(new_message_assistant)
 
                 try:
-                    db.add(new_message_assistant)
-                    db.commit()
+                    mysql_db.commit()
                 except Exception as e:
                     logger.error({'DB ERROR': e})
-                    db.rollback()
+                    mysql_db.rollback()
 
             return StreamingResponse(stream_generate(), media_type="text/event-stream")
         else:
             return JSONResponse(resp.json())
 
     else:
-        resp = requests.post(url=LLM_SERVER_APIS['chat'], json=chat_req.dict()).json()
+        resp = requests.post(url=LLM_SERVER_APIS['chat'], json=req_data).json()['data']
+        resp['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
+        retrieval = {}
+        retrieval.update({'sources': related_docs})
+        retrieval.update(msg)
+        resp.update({'retrieval': retrieval})
 
         new_message_assistant = ChatMessageRecord()
-        new_message_assistant.chat_id = chat_req.chat_id
-        new_message_assistant.uid = chat_req.answer_uid
+        new_message_assistant.chat_id = req.chat_id
+        new_message_assistant.uid = req.answer_uid
         new_message_assistant.role = 'assistant'
-        new_message_assistant.content = resp['data']['answer']
-        new_message_assistant.llm_name = resp['data']['model_name']
-        new_message_assistant.response = resp['data']
+        new_message_assistant.content = resp['answer']
+        new_message_assistant.llm_name = resp['model_name']
+        new_message_assistant.response = resp
+        if 'MultiQueryRetriever' in msg:
+            new_message_assistant.is_multiQueryRetriever_enabled = True
+
+        mysql_db.add(new_message_assistant)
+
         try:
-            db.add(new_message_assistant)
-            db.commit()
+            mysql_db.commit()
         except Exception as e:
             logger.error({'DB ERROR': e})
-            db.rollback()
+            mysql_db.rollback()
             return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
         return JSONResponse(resp)
 
 
 @router.api_route('/ai/llm/token_count', methods=['POST'], summary="token count")
 @limiter.limit(API_LIMIT['token_count'])
-def count_token(token_count_req: TokenCountRequest, request: Request):
-    logger.info(str(token_count_req.dict()))
+def count_token(request: Request,
+                req: TokenCountRequest,
+                user_id=Depends(verify_token)
+                ):
+    logger.info(str(req.dict()))
 
-    return JSONResponse(requests.post(url=LLM_SERVER_APIS['token_counter'], json=token_count_req.json()).json())
+    return JSONResponse(servers_token_count(**req.dict()).json())

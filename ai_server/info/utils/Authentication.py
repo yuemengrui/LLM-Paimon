@@ -22,9 +22,9 @@ def verify_token(request: Request):
         user_id = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])['user_id']
         return user_id
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail=u'token已过期')
+        raise HTTPException(status_code=401, detail=u'token已过期', headers={"Content-Type": "application/json;charset=UTF-8"})
     except Exception as e:
         logger.error({'EXCEPTION': e})
-        raise HTTPException(status_code=401, detail=u'非法请求')
+        raise HTTPException(status_code=401, detail=u'非法请求', headers={"Content-Type": "application/json;charset=UTF-8"})
 
 
