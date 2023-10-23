@@ -43,10 +43,19 @@ def auto_chunk(req, mysql_db, emb_model_list):
 
             embeddings = embedding_resp.json()['data']['embeddings']
 
-            if not milvus_db.upsert_data(collection_name=emb_model, texts=texts, text_hashs=text_hashs,
-                                         embeddings=embeddings):
-                logger.error(f"background task: {fil.file_hash} import failed: milvus insert data failed!!!")
-                continue
+            start = 0
+            while True:
+                if start > len(texts):
+                    break
+
+                if not milvus_db.upsert_data(collection_name=emb_model,
+                                             texts=texts[start:start + 100],
+                                             text_hashs=text_hashs[start:start + 100],
+                                             embeddings=embeddings[start:start + 100]):
+                    logger.error(f"background task: {fil.file_hash} import failed: milvus insert data failed!!!")
+                    continue
+
+                start = start + 100
 
             new_kb_data = KBData()
             new_kb_data.kb_id = req.kb_id
