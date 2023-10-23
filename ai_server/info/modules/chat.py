@@ -73,10 +73,10 @@ def llm_chat(request: Request,
                     res['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
                     retrieval = {}
                     retrieval.update({'sources': related_docs})
-                    retrieval.update({'sources_len': sum([len(x['related_texts'])for x in related_docs])})
+                    retrieval.update({'sources_len': sum([len(x['related_texts']) for x in related_docs])})
                     retrieval.update(msg)
                     res.update({'retrieval': retrieval})
-                    yield json.dumps(res, ensure_ascii=False)
+                    yield f"data: {json.dumps(res, ensure_ascii=False)}\n\n"
 
                 new_message_assistant = ChatMessageRecord()
                 new_message_assistant.chat_id = req.chat_id
