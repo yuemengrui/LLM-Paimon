@@ -59,7 +59,7 @@ def get_app_create_user_system_app_list(request: Request,
     if len(system_app_list) == 0:
         return JSONResponse({'list': []})
 
-    user_system_app_list = mysql_db.query(App).filter(App.user_id == user_id, App.is_system == True).all()
+    user_system_app_list = mysql_db.query(App).filter(App.user_id == user_id, App.is_system == True, App.is_delete == False).all()
 
     user_system_app_id_list = [x.system_app_id for x in user_system_app_list]
 
