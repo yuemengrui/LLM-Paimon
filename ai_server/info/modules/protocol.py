@@ -65,7 +65,6 @@ class AppCreateRequest(BaseModel):
 
 
 class AppCreateSystemAppRequest(BaseModel):
-    name: str
     system_app_id: int
 
 
