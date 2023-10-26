@@ -40,13 +40,28 @@ class User(Base, BaseModel):
     password = Column(String(256), nullable=False)
 
 
+class SystemApp(Base, BaseModel):
+    __tablename__ = 'system_app'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(32), nullable=False)
+    is_delete = Column(Boolean, default=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name
+        }
+
+
 class App(Base, BaseModel):
     __tablename__ = 'app'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, nullable=False)
     kb_id = Column(Integer)
     name = Column(String(32), nullable=False)
-    llm_name = Column(String(32), nullable=False)
+    llm_name = Column(String(32))
+    is_system = Column(Boolean, default=False, comment='是否是系统应用')
+    system_app_id = Column(Integer, comment='系统应用id')
     is_delete = Column(Boolean, default=False)
     is_multiQueryRetriever_enabled = Column(Boolean, default=True, comment="是否启用 multiquery retriever")
 
@@ -56,7 +71,8 @@ class App(Base, BaseModel):
             "name": self.name,
             "llm_name": self.llm_name,
             "kb_id": self.kb_id,
-            "kb_name": ''
+            "kb_name": '',
+            "is_system": self.is_system
         }
 
 
@@ -83,6 +99,7 @@ class ChatMessageRecord(Base, BaseModel):
     chat_id = Column(Integer, nullable=False)
     role = Column(String(32), default='assistant', nullable=False)
     content = Column(TEXT, nullable=False)
+    type = Column(String(16), default='text', comment='消息类型：text image')
     response = Column(JSON, default={})
     llm_name = Column(String(32))
     is_delete = Column(Boolean, default=False)
@@ -94,6 +111,7 @@ class ChatMessageRecord(Base, BaseModel):
             "uid": self.uid,
             "chat_id": self.chat_id,
             "role": self.role,
+            "type": self.type,
             "content": self.content,
             "response": self.response,
             "llm_name": self.llm_name

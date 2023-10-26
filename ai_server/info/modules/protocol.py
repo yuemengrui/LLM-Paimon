@@ -64,6 +64,11 @@ class AppCreateRequest(BaseModel):
     kb_id: int = Field(default=None)
 
 
+class AppCreateSystemAppRequest(BaseModel):
+    name: str
+    system_app_id: int
+
+
 class AppDeleteRequest(BaseModel):
     app_id: int
 

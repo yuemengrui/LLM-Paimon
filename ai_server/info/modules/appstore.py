@@ -6,12 +6,24 @@ from info.configs.base_configs import API_LIMIT
 from info import logger, limiter, get_mysql_db
 from fastapi.responses import JSONResponse
 from info.utils.Authentication import verify_token
-from info.mysql_models import App, ChatRecord, ChatMessageRecord, KnowledgeBase
+from info.mysql_models import SystemApp, App, ChatRecord, ChatMessageRecord, KnowledgeBase
 from .protocol import AppCreateRequest, ErrorResponse, AppChatListRequest, AppChatCreateRequest, \
-    AppChatMessageListRequest, AppDeleteRequest
+    AppChatMessageListRequest, AppDeleteRequest, AppCreateSystemAppRequest
 from info.utils.response_code import RET, error_map
 
 router = APIRouter()
+
+
+@router.api_route(path='/ai/system_app/list', methods=['GET'], summary="system app list")
+@limiter.limit(API_LIMIT['auth'])
+def get_system_app_list(request: Request,
+                        mysql_db: Session = Depends(get_mysql_db),
+                        user_id: int = Depends(verify_token)
+                        ):
+    system_app_list = mysql_db.query(SystemApp).filter(SystemApp.is_delete == False).order_by(
+        SystemApp.update_time.desc()).all()
+
+    return JSONResponse({'list': [x.to_dict() for x in system_app_list]})
 
 
 @router.api_route(path='/ai/app/list', methods=['GET'], summary="app list")
@@ -34,6 +46,57 @@ def get_app_list(request: Request,
         res.append(temp)
 
     return JSONResponse({'list': res})
+
+
+@router.api_route(path='/ai/app/create/system_app/list', methods=['GET'], summary="app list")
+@limiter.limit(API_LIMIT['auth'])
+def get_app_create_user_system_app_list(request: Request,
+                                        mysql_db: Session = Depends(get_mysql_db),
+                                        user_id: int = Depends(verify_token)
+                                        ):
+    system_app_list = mysql_db.query(SystemApp).filter(SystemApp.is_delete == False).all()
+
+    if len(system_app_list) == 0:
+        return JSONResponse({'list': []})
+
+    user_system_app_list = mysql_db.query(App).filter(App.user_id == user_id, App.is_system == True).all()
+
+    user_system_app_id_list = [x.system_app_id for x in user_system_app_list]
+
+    res = []
+    for sys_app in system_app_list:
+        if sys_app.id not in user_system_app_id_list:
+            res.append(sys_app.to_dict())
+
+    return JSONResponse({'list': res})
+
+
+@router.api_route(path='/ai/app/create/system_app', methods=['POST'], summary="app create")
+@limiter.limit(API_LIMIT['auth'])
+def user_system_app_create(request: Request,
+                           req: AppCreateSystemAppRequest,
+                           mysql_db: Session = Depends(get_mysql_db),
+                           user_id: int = Depends(verify_token)
+                           ):
+    app = mysql_db.query(App).filter(App.user_id == user_id, App.is_system == True, App.system_app_id == req.system_app_id).first()
+    if app is not None:
+        app.is_delete = False
+    else:
+        new_app = App()
+        new_app.user_id = user_id
+        new_app.name = req.name
+        new_app.is_system = True
+        new_app.system_app_id = req.system_app_id
+        mysql_db.add(new_app)
+
+    try:
+        mysql_db.commit()
+    except Exception as e:
+        logger.error({'DB ERROR': e})
+        mysql_db.rollback()
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+
+    return JSONResponse({'errcode': RET.OK, 'errmsg': error_map[RET.OK]})
 
 
 @router.api_route(path='/ai/app/create', methods=['POST'], summary="app create")
