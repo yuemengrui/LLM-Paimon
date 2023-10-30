@@ -111,3 +111,13 @@ class KBDataImportRequest(BaseModel):
     method_id: int
     kb_id: int
     files: List[KBDataImportOne]
+
+
+class TableAnalysisRequest(BaseModel):
+    app_id: int
+    chat_id: int
+    uid: str
+    file_hash: str
+    file_url: str
+
+

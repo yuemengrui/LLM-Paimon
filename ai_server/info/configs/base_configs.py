@@ -7,6 +7,7 @@ FASTAPI_PORT = 10000
 
 ########################
 API_OCR_GENERAL = 'http://127.0.0.1:6000/ai/ocr/general'
+API_OCR_BYTE = 'http://127.0.0.1:6000/ai/ocr/byte'
 ########################
 
 ########################
