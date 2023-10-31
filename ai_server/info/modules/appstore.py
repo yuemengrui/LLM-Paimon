@@ -89,6 +89,7 @@ def user_system_app_create(request: Request,
         new_app = App()
         new_app.user_id = user_id
         new_app.name = sys_app.name
+        new_app.llm_name = 'Baichuan2_13B_8k'
         new_app.is_system = True
         new_app.system_app_id = req.system_app_id
         mysql_db.add(new_app)

@@ -54,7 +54,7 @@ def llm_chat(request: Request,
         mysql_db.rollback()
         return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
 
-    prompt, related_docs, msg = get_final_prompt(prompt=req.prompt, app_id=req.app_id, mysql_db=mysql_db)
+    prompt, related_docs, msg = get_final_prompt(req=req, app_id=req.app_id, mysql_db=mysql_db)
     logger.info(f"prompt: {prompt}")
     req_data = {
         "model_name": req.model_name,

@@ -12,6 +12,8 @@ from info.mysql_models import FileSystem, UserFileSystem
 from .protocol import ErrorResponse, FileUploadResponse
 from info.utils.response_code import RET
 from info.utils.get_md5 import md5hex
+from info.configs.base_configs import SECRET_KEY
+import jwt
 
 router = APIRouter()
 
@@ -102,9 +104,14 @@ async def file_upload(request: Request,
 @limiter.limit(API_LIMIT['auth'])
 def file_download(request: Request,
                   file_path: str,
-                  mysql_db: Session = Depends(get_mysql_db),
-                  user_id: int = Depends(verify_token)
+                  mysql_db: Session = Depends(get_mysql_db)
                   ):
+    token = request.headers.get('Authorization')
+    try:
+        user_id = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])['user_id']
+    except:
+        user_id = None
+
     file_hash = file_path.split('.')[0]
 
     file = mysql_db.query(FileSystem).filter(FileSystem.file_hash == file_hash).first()
@@ -117,10 +124,11 @@ def file_download(request: Request,
         return JSONResponse(ErrorResponse(errcode=RET.NODATA, errmsg=u'文件不存在').dict())
 
     file_name = file_hash + file.file_ext
-    user_file = mysql_db.query(UserFileSystem).filter(UserFileSystem.file_hash == file_hash,
-                                                      UserFileSystem.user_id == user_id).first()
-    if user_file:
-        if user_file.file_name:
-            file_name = user_file.file_name
+    if user_id:
+        user_file = mysql_db.query(UserFileSystem).filter(UserFileSystem.file_hash == file_hash,
+                                                          UserFileSystem.user_id == user_id).first()
+        if user_file:
+            if user_file.file_name:
+                file_name = user_file.file_name
 
     return FileResponse(path=file_path, filename=file_name)

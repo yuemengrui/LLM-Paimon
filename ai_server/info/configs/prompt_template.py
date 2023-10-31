@@ -47,3 +47,10 @@ json: {"year":"", "province":"", "city": ""}
 """
 
 multiqueryretriever_prompt_template = "分析输入的问题，从多种角度生成最多5个相似问题，并以json形式输出结果，其中包括以下json key:question1,question2,question3,question4,question5。只返回json输出，不要返回非json内容。输入问题是：{query}"
+
+tableQA_prompt_template = """
+你是一个专业的表格数据分析师。根据给定的表格数据来回答用户的问题。
+用户的问题是：{query}
+表格数据是：
+{context}
+"""

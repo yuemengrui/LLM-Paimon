@@ -100,6 +100,7 @@ class ChatMessageRecord(Base, BaseModel):
     role = Column(String(32), default='assistant', nullable=False)
     content = Column(TEXT, nullable=False)
     type = Column(String(16), default='text', comment='消息类型：text image')
+    url = Column(String(256))
     response = Column(JSON, default={})
     llm_name = Column(String(32))
     is_delete = Column(Boolean, default=False)
@@ -112,6 +113,7 @@ class ChatMessageRecord(Base, BaseModel):
             "chat_id": self.chat_id,
             "role": self.role,
             "type": self.type,
+            "url": self.url,
             "content": self.content,
             "response": self.response,
             "llm_name": self.llm_name

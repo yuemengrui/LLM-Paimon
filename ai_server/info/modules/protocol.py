@@ -39,6 +39,14 @@ class ChatRequest(BaseModel):
     history: List = Field(default=[], description="历史记录")
     generation_configs: Dict = {}
     stream: bool = Field(default=True, description="是否流式输出")
+    custom: Dict = Field(default={})
+    """
+    :param custom: {
+                "tableQA": {
+                    "table_content": ""
+                }
+            }
+    """
 
 
 class ChatResponse(BaseModel):
