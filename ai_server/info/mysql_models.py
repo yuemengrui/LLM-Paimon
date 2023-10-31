@@ -98,7 +98,7 @@ class ChatMessageRecord(Base, BaseModel):
     uid = Column(String(64), nullable=False)
     chat_id = Column(Integer, nullable=False)
     role = Column(String(32), default='assistant', nullable=False)
-    content = Column(TEXT, nullable=False)
+    content = Column(TEXT)
     type = Column(String(16), default='text', comment='消息类型：text image')
     url = Column(String(256))
     response = Column(JSON, default={})
