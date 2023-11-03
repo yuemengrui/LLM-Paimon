@@ -37,6 +37,15 @@ LLM_SERVER_APIS = {
 ########################
 
 ########################
+# Embedding Configs
+EMBEDDING_SERVER_PREFIX = 'http://127.0.0.1:6000'  # Embedding Server 地址
+EMBEDDING_SERVER_APIS = {
+    'model_list': LLM_SERVER_PREFIX + '/ai/embedding/model/list',
+    'embedding_text': LLM_SERVER_PREFIX + '/ai/embedding/text'
+}
+########################
+
+########################
 # Mysql Configs
 MYSQL_HOST = '127.0.0.1'
 MYSQL_POST = 3306

@@ -34,7 +34,7 @@ def servers_get_llm_list():
 
 
 def servers_get_embedding_model_list():
-    return requests.get(url=LLM_SERVER_APIS['embedding_model_list'])
+    return requests.get(url=EMBEDDING_SERVER_APIS['model_list'])
 
 
 def servers_embedding_text(sentences: List[str], model_name: str = ""):
@@ -43,4 +43,4 @@ def servers_embedding_text(sentences: List[str], model_name: str = ""):
         "sentences": sentences
     }
 
-    return requests.post(url=LLM_SERVER_APIS['embedding_text'], json=req_data)
+    return requests.post(url=EMBEDDING_SERVER_APIS['embedding_text'], json=req_data)
