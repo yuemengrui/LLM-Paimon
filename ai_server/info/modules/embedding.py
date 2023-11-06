@@ -1,8 +1,7 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-import requests
 from fastapi import APIRouter, Request, Depends
-from info.configs.base_configs import API_LIMIT, LLM_SERVER_APIS
+from configs import API_LIMIT
 from info import logger, limiter
 from fastapi.responses import JSONResponse
 from .protocol import EmbeddingRequest

@@ -7,10 +7,10 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Request, Depends
 from info.utils.Authentication import verify_token
 from info import logger, limiter, get_mysql_db
-from info.configs.base_configs import API_LIMIT, LLM_SERVER_APIS
+from configs import API_LIMIT, LLM_SERVER_APIS
 from .protocol import ChatRequest, TokenCountRequest, ErrorResponse
 from fastapi.responses import JSONResponse, StreamingResponse
-from info.mysql_models import ChatMessageRecord, ChatRecord, MultiQueryRetriever
+from info.mysql_models import ChatMessageRecord, ChatRecord
 from info.utils.response_code import RET, error_map
 from info.utils.kb.prompt_handler import get_final_prompt
 from info.utils.api_servers.llm_base import servers_get_llm_list, servers_token_count

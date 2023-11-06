@@ -2,7 +2,7 @@
 # @Author : YueMengRui
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session
-from info.configs.base_configs import API_LIMIT
+from configs import API_LIMIT
 from info import logger, limiter, get_mysql_db
 from fastapi.responses import JSONResponse
 from info.utils.Authentication import verify_token

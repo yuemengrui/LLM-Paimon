@@ -2,9 +2,10 @@
 # @Author : YueMengRui
 import re
 import json
-from info import logger, milvus_db
+from mylogger import logger
+from info import milvus_db
 from info.utils.api_servers.llm_base import servers_llm_chat, servers_embedding_text
-from info.configs.prompt_template import multiqueryretriever_prompt_template
+from configs.prompt_template import multiqueryretriever_prompt_template
 
 
 def multiquery_retriever(query, model_name, text_hash_list):

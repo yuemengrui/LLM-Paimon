@@ -1,7 +1,6 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-from info import logger, milvus_db
-from info.configs.prompt_template import kb_qa_prompt_template, tableQA_prompt_template
+from configs.prompt_template import kb_qa_prompt_template, tableQA_prompt_template
 from info.mysql_models import App, KBData, KBDataDetail, KnowledgeBase
 from info.utils.kb.MultiQueryRetriever import multiquery_retriever
 

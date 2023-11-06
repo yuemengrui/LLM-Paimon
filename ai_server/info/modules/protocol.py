@@ -1,6 +1,5 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-from info.configs import *
 from pydantic import BaseModel, Field
 from typing import Dict, List
 

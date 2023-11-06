@@ -4,8 +4,8 @@ import numpy as np
 import cv2
 import requests
 import base64
-from info import logger
-from info.configs.base_configs import API_OCR_BYTE, API_OCR_GENERAL
+from mylogger import logger
+from configs import API_OCR_BYTE, API_OCR_GENERAL
 
 
 def get_ocr_byte_res(img):
@@ -40,4 +40,3 @@ def get_ocr_general_res(img):
     except Exception as e:
         logger.error({'EXCEPTION': e})
         return ''
-

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Request, Depends
 from info.utils.Authentication import verify_token
 from info import logger, limiter, get_mysql_db
-from info.configs.base_configs import API_LIMIT
+from configs import API_LIMIT
 from .protocol import TableAnalysisRequest, ErrorResponse
 from fastapi.responses import JSONResponse
 from info.mysql_models import ChatMessageRecord, FileSystem

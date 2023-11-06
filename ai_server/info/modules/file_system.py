@@ -4,7 +4,7 @@ import os
 import time
 from fastapi import APIRouter, Request, Depends, File, UploadFile
 from sqlalchemy.orm import Session
-from info.configs.base_configs import API_LIMIT, FILE_SYSTEM_DIR, THIS_SERVER_URL
+from configs import API_LIMIT, FILE_SYSTEM_DIR, THIS_SERVER_URL
 from info import logger, limiter, get_mysql_db
 from fastapi.responses import JSONResponse, FileResponse
 from info.utils.Authentication import verify_token
@@ -12,7 +12,7 @@ from info.mysql_models import FileSystem, UserFileSystem
 from .protocol import ErrorResponse, FileUploadResponse
 from info.utils.response_code import RET
 from info.utils.get_md5 import md5hex
-from info.configs.base_configs import SECRET_KEY
+from configs import SECRET_KEY
 import jwt
 
 router = APIRouter()

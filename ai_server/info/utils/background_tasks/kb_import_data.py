@@ -1,7 +1,8 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
 import os
-from info import get_mysql_db, logger, milvus_db
+from mylogger import logger
+from info import get_mysql_db, milvus_db
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from info.utils.get_md5 import md5hex

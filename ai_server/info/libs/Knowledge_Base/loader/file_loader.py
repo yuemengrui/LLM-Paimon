@@ -5,8 +5,8 @@ import fitz
 import base64
 import requests
 import numpy as np
-from info.configs.base_configs import API_OCR_GENERAL
-from info import logger
+from configs import API_OCR_GENERAL
+from mylogger import logger
 from typing import Any, List, Optional
 from langchain.docstore.document import Document
 from info.libs.Knowledge_Base.text_splitter.chinese_text_splitter import ChineseTextSplitter

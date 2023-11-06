@@ -1,10 +1,8 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-from info.configs.base_configs import *
-from typing import List
-from info import logger
-
 import requests
+from typing import List
+from configs import LLM_SERVER_APIS, EMBEDDING_SERVER_APIS
 
 
 def servers_llm_chat(prompt, model_name: str = "", history: list = [], generation_configs: dict = {}):

@@ -1,8 +1,8 @@
 # *_*coding:utf-8 *_*
 import datetime
 from fastapi import Request, HTTPException
-from info import logger
-from info.configs.base_configs import SECRET_KEY, TOKEN_EXPIRES
+from mylogger import logger
+from configs import SECRET_KEY, TOKEN_EXPIRES
 import jwt
 
 
@@ -22,9 +22,9 @@ def verify_token(request: Request):
         user_id = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])['user_id']
         return user_id
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail=u'token已过期', headers={"Content-Type": "application/json;charset=UTF-8"})
+        raise HTTPException(status_code=401, detail=u'token已过期',
+                            headers={"Content-Type": "application/json;charset=UTF-8"})
     except Exception as e:
         logger.error({'EXCEPTION': e})
-        raise HTTPException(status_code=401, detail=u'非法请求', headers={"Content-Type": "application/json;charset=UTF-8"})
-
-
+        raise HTTPException(status_code=401, detail=u'非法请求',
+                            headers={"Content-Type": "application/json;charset=UTF-8"})

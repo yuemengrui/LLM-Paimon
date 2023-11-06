@@ -2,8 +2,12 @@
 # @Author : YueMengRui
 import os
 
+FASTAPI_TITLE = 'LLM_Paimon'
 FASTAPI_HOST = '0.0.0.0'
 FASTAPI_PORT = 10000
+
+LOG_DIR = 'logs'
+os.makedirs(LOG_DIR, exist_ok=True)
 
 ########################
 API_OCR_GENERAL = 'http://127.0.0.1:6000/ai/ocr/general'

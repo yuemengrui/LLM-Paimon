@@ -1,6 +1,6 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-from info.configs import MYSQL_HOST, MYSQL_POST, MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DATABASE_NAME
+from configs import MYSQL_HOST, MYSQL_POST, MYSQL_USERNAME, MYSQL_PASSWORD, MYSQL_DATABASE_NAME
 from urllib import parse
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

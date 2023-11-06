@@ -2,11 +2,11 @@
 # @Author : YueMengRui
 from fastapi import APIRouter, Request, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
-from info.configs.base_configs import API_LIMIT
+from configs import API_LIMIT
 from info import logger, limiter, get_mysql_db, milvus_db
 from fastapi.responses import JSONResponse
 from info.utils.Authentication import verify_token
-from info.mysql_models import KnowledgeBase, KBData, KBDataDetail
+from info.mysql_models import KnowledgeBase, KBData
 from .protocol import ErrorResponse, KBCreateRequest, KBDataImportRequest, KBDeleteRequest, KBDataListRequest
 from info.utils.response_code import RET, error_map
 from info.utils.api_servers.llm_base import servers_embedding_text

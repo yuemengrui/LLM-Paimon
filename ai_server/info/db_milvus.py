@@ -1,7 +1,7 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
 import numpy as np
-from info.configs.base_configs import MILVUS_HOST, MILVUS_PORT, MILVUS_USERNAME, MILVUS_PASSWORD, MILVUS_DB_NAME
+from configs import MILVUS_HOST, MILVUS_PORT, MILVUS_USERNAME, MILVUS_PASSWORD, MILVUS_DB_NAME
 from pymilvus import CollectionSchema, FieldSchema, DataType, Collection, MilvusException, connections, db, utility
 
 
