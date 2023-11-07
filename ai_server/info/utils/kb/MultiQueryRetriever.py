@@ -11,24 +11,23 @@ from configs.prompt_template import multiqueryretriever_prompt_template
 def multiquery_retriever(query, model_name, text_hash_list):
     queries = [query]
     resp = servers_llm_chat(prompt=multiqueryretriever_prompt_template.format(query=query), model_name=model_name)
-
     logger.info(f"multiquery_retriever: {resp}")
     resp_json_data = None
-
-    result = re.search(r"```json(.*?)```", resp, re.DOTALL)
-    if result:
-        try:
-            resp_json_data = json.loads(result.group(1))
-        except:
-            pass
-
-    if resp_json_data is None:
-        result = re.search(r"{(.*?)}", resp, re.DOTALL)
+    if resp:
+        result = re.search(r"```json(.*?)```", resp, re.DOTALL)
         if result:
             try:
-                resp_json_data = json.loads('{' + result.group(1) + '}')
+                resp_json_data = json.loads(result.group(1))
             except:
                 pass
+
+        if resp_json_data is None:
+            result = re.search(r"{(.*?)}", resp, re.DOTALL)
+            if result:
+                try:
+                    resp_json_data = json.loads('{' + result.group(1) + '}')
+                except:
+                    pass
 
     if resp_json_data:
         logger.info(f"multiquery_retriever: json: {resp_json_data}")
