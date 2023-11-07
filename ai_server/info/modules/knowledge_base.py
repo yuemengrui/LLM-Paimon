@@ -116,7 +116,7 @@ async def kb_data_import(request: Request,
 
     embedding_resp = servers_embedding_text(sentences=[prompt], model_name=model_name)
 
-    embedding = embedding_resp.json()['data']['embeddings'][0]
+    embedding = embedding_resp.json()['embeddings'][0]
 
     hash_list = ['6ac87e9e2774b4f96988eab5abad3d14', 'e6aade6cd38ba0b4ad45d6c7ba6ecf13']
     milvus_db.similarity_search(model_name, embedding, expr=f"text_hash in {hash_list}")

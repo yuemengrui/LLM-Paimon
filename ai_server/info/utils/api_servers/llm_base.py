@@ -15,7 +15,7 @@ def servers_llm_chat(prompt, model_name: str = "", history: list = [], generatio
     }
     resp = requests.post(url=LLM_SERVER_APIS['chat'], json=req_data)
 
-    return resp.json()['data']['answer']
+    return resp.json()['answer']
 
 
 def servers_token_count(prompt: str, model_name: str = ""):

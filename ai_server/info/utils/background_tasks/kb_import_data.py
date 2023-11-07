@@ -42,7 +42,7 @@ def auto_chunk(req, mysql_db, emb_model_list):
 
             embedding_resp = servers_embedding_text(sentences=texts, model_name=emb_model)
 
-            embeddings = embedding_resp.json()['data']['embeddings']
+            embeddings = embedding_resp.json()['embeddings']
 
             start = 0
             while True:

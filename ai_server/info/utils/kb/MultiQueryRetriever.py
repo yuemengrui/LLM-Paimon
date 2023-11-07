@@ -40,7 +40,7 @@ def multiquery_retriever(query, model_name, text_hash_list):
     related_docs = []
     text_hash_filter = []
     for q in queries:
-        embedding = servers_embedding_text(sentences=[q], model_name=model_name).json()['data']['embeddings'][0]
+        embedding = servers_embedding_text(sentences=[q], model_name=model_name).json()['embeddings'][0]
 
         results = milvus_db.similarity_search(model_name, embedding, expr=f"text_hash in {text_hash_list}", threshold=0.85)
 
