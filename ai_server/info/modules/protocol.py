@@ -55,6 +55,14 @@ class ChatResponse(BaseModel):
     usage: Dict
 
 
+class ChatSimpleRequest(BaseModel):
+    model_name: str = Field(default=None, description="模型名称")
+    prompt: str
+    history: List = Field(default=[], description="历史记录")
+    generation_configs: Dict = {}
+    stream: bool = Field(default=True, description="是否流式输出")
+
+
 class EmbeddingRequest(BaseModel):
     model_name: str = Field(default=None, description="模型名称")
     sentences: List[str] = Field(description="句子列表")
@@ -126,5 +134,3 @@ class TableAnalysisRequest(BaseModel):
     uid: str
     file_hash: str
     file_url: str
-
-

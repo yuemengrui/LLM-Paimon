@@ -8,7 +8,7 @@ from fastapi import APIRouter, Request, Depends
 from info.utils.Authentication import verify_token
 from info import logger, limiter, get_mysql_db
 from configs import API_LIMIT, LLM_SERVER_APIS
-from .protocol import ChatRequest, TokenCountRequest, ErrorResponse
+from .protocol import ChatRequest, TokenCountRequest, ErrorResponse, ChatSimpleRequest
 from fastapi.responses import JSONResponse, StreamingResponse
 from info.mysql_models import ChatMessageRecord, ChatRecord
 from info.utils.response_code import RET, error_map
@@ -101,7 +101,7 @@ def llm_chat(request: Request,
             return JSONResponse(resp.json())
 
     else:
-        resp = requests.post(url=LLM_SERVER_APIS['chat'], json=req_data).json()['data']
+        resp = requests.post(url=LLM_SERVER_APIS['chat'], json=req_data).json()
         resp['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
         retrieval = {}
         retrieval.update({'sources': related_docs})
@@ -138,3 +138,40 @@ def count_token(request: Request,
     logger.info(str(req.dict()))
 
     return JSONResponse(servers_token_count(**req.dict()).json())
+
+
+@router.api_route('/ai/llm/chat/simple', methods=['POST'], summary="Chat Simple")
+@limiter.limit(API_LIMIT['chat'])
+def llm_chat_simple(request: Request,
+                    req: ChatSimpleRequest,
+                    user_id=Depends(verify_token)
+                    ):
+    start = time.time()
+    logger.info(str(req.dict()))
+
+    req_data = {
+        "model_name": req.model_name,
+        "prompt": req.prompt,
+        "history": req.history,
+        "generation_configs": req.generation_configs,
+        "stream": False
+    }
+    if req.stream:
+        req_data.update({"stream": True})
+        resp = requests.post(url=LLM_SERVER_APIS['chat'], json=req_data, stream=True)
+        if 'event-stream' in resp.headers.get('content-type'):
+            def stream_generate():
+                for line in resp.iter_content(chunk_size=None):
+                    res = json.loads(line.decode('utf-8'))
+                    res['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
+                    yield f"data: {json.dumps(res, ensure_ascii=False)}\n\n"
+
+            return StreamingResponse(stream_generate(), media_type="text/event-stream")
+        else:
+            return JSONResponse(resp.json())
+
+    else:
+        resp = requests.post(url=LLM_SERVER_APIS['chat'], json=req_data).json()
+        resp['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
+
+        return JSONResponse(resp)
