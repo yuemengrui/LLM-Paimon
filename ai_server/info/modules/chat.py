@@ -52,7 +52,7 @@ def llm_chat(request: Request,
     except Exception as e:
         logger.error({'DB ERROR': e})
         mysql_db.rollback()
-        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
 
     prompt, related_docs, msg = get_final_prompt(req=req, app_id=req.app_id, mysql_db=mysql_db)
     logger.info(f"prompt: {prompt}")
@@ -125,7 +125,7 @@ def llm_chat(request: Request,
         except Exception as e:
             logger.error({'DB ERROR': e})
             mysql_db.rollback()
-            return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+            return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
         return JSONResponse(resp)
 
 

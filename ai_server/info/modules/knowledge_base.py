@@ -47,9 +47,9 @@ def kb_create(request: Request,
     except Exception as e:
         logger.error({'DB ERROR': e})
         mysql_db.rollback()
-        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
 
-    return JSONResponse({'errcode': RET.OK, 'errmsg': error_map[RET.OK]})
+    return JSONResponse({'msg': error_map[RET.OK]})
 
 
 @router.api_route(path='/ai/knowledge_base/delete', methods=['POST'], summary="knowledge_base create")
@@ -68,9 +68,9 @@ def kb_delete(request: Request,
     except Exception as e:
         logger.error({'DB ERROR': e})
         mysql_db.rollback()
-        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
 
-    return JSONResponse({'errcode': RET.OK, 'errmsg': error_map[RET.OK]})
+    return JSONResponse({'msg': error_map[RET.OK]})
 
 
 @router.api_route(path='/ai/knowledge_base/data/list', methods=['POST'], summary="knowledge_base data list")
@@ -100,7 +100,7 @@ def kb_data_import(request: Request,
 
     background_tasks.add_task(import_data_2_kb, req, mysql_db)
 
-    return JSONResponse({'errcode': RET.OK, 'errmsg': error_map[RET.OK]})
+    return JSONResponse({'msg': error_map[RET.OK]})
 
 
 @router.api_route(path='/ai/knowledge_base/test', methods=['POST'], summary="knowledge_base import data")
@@ -121,4 +121,4 @@ async def kb_data_import(request: Request,
     hash_list = ['6ac87e9e2774b4f96988eab5abad3d14', 'e6aade6cd38ba0b4ad45d6c7ba6ecf13']
     milvus_db.similarity_search(model_name, embedding, expr=f"text_hash in {hash_list}")
 
-    return JSONResponse({'errcode': RET.OK, 'errmsg': error_map[RET.OK]})
+    return JSONResponse({'msg': error_map[RET.OK]})

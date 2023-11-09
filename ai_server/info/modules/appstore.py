@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from info.utils.Authentication import verify_token
 from info.mysql_models import SystemApp, App, ChatRecord, ChatMessageRecord, KnowledgeBase
 from .protocol import AppCreateRequest, ErrorResponse, AppChatListRequest, AppChatCreateRequest, \
-    AppChatMessageListRequest, AppDeleteRequest, AppCreateSystemAppRequest
+    AppChatMessageListRequest, AppDeleteRequest, AppCreateSystemAppRequest, AppInfoRequest, AppInfoModifyRequest
 from info.utils.response_code import RET, error_map
 
 router = APIRouter()
@@ -48,6 +48,50 @@ def get_app_list(request: Request,
     return JSONResponse({'list': res})
 
 
+@router.api_route(path='/ai/app/info', methods=['POST'], summary="app info")
+@limiter.limit(API_LIMIT['auth'])
+def get_app_info(request: Request,
+                 req: AppInfoRequest,
+                 mysql_db: Session = Depends(get_mysql_db),
+                 user_id: int = Depends(verify_token)
+                 ):
+    app_info = mysql_db.query(App).filter(App.id == req.app_id, App.is_delete == False).first()
+
+    if app_info is None:
+        return JSONResponse(ErrorResponse(errcode=RET.NODATA, errmsg=error_map[RET.NODATA]).dict(), status_code=400)
+
+    return JSONResponse(app_info.to_dict())
+
+
+@router.api_route(path='/ai/app/info/modify', methods=['POST'], summary="app info modify")
+@limiter.limit(API_LIMIT['auth'])
+def app_info_modify(request: Request,
+                    req: AppInfoModifyRequest,
+                    mysql_db: Session = Depends(get_mysql_db),
+                    user_id: int = Depends(verify_token)
+                    ):
+    app_info = mysql_db.query(App).filter(App.id == req.app_id, App.is_delete == False).first()
+
+    if app_info is None:
+        return JSONResponse(ErrorResponse(errcode=RET.NODATA, errmsg=error_map[RET.NODATA]).dict(), status_code=400)
+
+    if app_info.is_system:
+        app_info.llm_name = req.llm_name
+    else:
+        app_info.name = req.name
+        app_info.kb_id = req.kb_id
+        app_info.llm_name = req.llm_name
+
+    try:
+        mysql_db.commit()
+    except Exception as e:
+        logger.error({'DB ERROR': e})
+        mysql_db.rollback()
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
+
+    return JSONResponse({'msg': error_map[RET.OK]})
+
+
 @router.api_route(path='/ai/app/create/system_app/list', methods=['GET'], summary="app list")
 @limiter.limit(API_LIMIT['auth'])
 def get_app_create_user_system_app_list(request: Request,
@@ -59,7 +103,8 @@ def get_app_create_user_system_app_list(request: Request,
     if len(system_app_list) == 0:
         return JSONResponse({'list': []})
 
-    user_system_app_list = mysql_db.query(App).filter(App.user_id == user_id, App.is_system == True, App.is_delete == False).all()
+    user_system_app_list = mysql_db.query(App).filter(App.user_id == user_id, App.is_system == True,
+                                                      App.is_delete == False).all()
 
     user_system_app_id_list = [x.system_app_id for x in user_system_app_list]
 
@@ -78,13 +123,14 @@ def user_system_app_create(request: Request,
                            mysql_db: Session = Depends(get_mysql_db),
                            user_id: int = Depends(verify_token)
                            ):
-    app = mysql_db.query(App).filter(App.user_id == user_id, App.is_system == True, App.system_app_id == req.system_app_id).first()
+    app = mysql_db.query(App).filter(App.user_id == user_id, App.is_system == True,
+                                     App.system_app_id == req.system_app_id).first()
     if app is not None:
         app.is_delete = False
     else:
         sys_app = mysql_db.query(SystemApp).get(req.system_app_id)
         if sys_app is None:
-            return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+            return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
 
         new_app = App()
         new_app.user_id = user_id
@@ -99,9 +145,9 @@ def user_system_app_create(request: Request,
     except Exception as e:
         logger.error({'DB ERROR': e})
         mysql_db.rollback()
-        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
 
-    return JSONResponse({'errcode': RET.OK, 'errmsg': error_map[RET.OK]})
+    return JSONResponse({'msg': error_map[RET.OK]})
 
 
 @router.api_route(path='/ai/app/create', methods=['POST'], summary="app create")
@@ -123,9 +169,9 @@ def app_create(request: Request,
     except Exception as e:
         logger.error({'DB ERROR': e})
         mysql_db.rollback()
-        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
 
-    return JSONResponse({'errcode': RET.OK, 'errmsg': error_map[RET.OK]})
+    return JSONResponse({'msg': error_map[RET.OK]})
 
 
 @router.api_route(path='/ai/app/delete', methods=['POST'], summary="app delete")
@@ -144,9 +190,9 @@ def app_delete(request: Request,
     except Exception as e:
         logger.error({'DB ERROR': e})
         mysql_db.rollback()
-        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
 
-    return JSONResponse({'errcode': RET.OK, 'errmsg': error_map[RET.OK]})
+    return JSONResponse({'msg': error_map[RET.OK]})
 
 
 @router.api_route(path='/ai/app/chat/list', methods=['POST'], summary="app chat list")
@@ -180,9 +226,9 @@ def app_chat_create(request: Request,
     except Exception as e:
         logger.error({'DB ERROR': e})
         mysql_db.rollback()
-        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
 
-    return JSONResponse({'errcode': RET.OK, 'errmsg': error_map[RET.OK]})
+    return JSONResponse({'msg': error_map[RET.OK]})
 
 
 @router.api_route(path='/ai/app/chat/create', methods=['POST'], summary="app chat list")
@@ -204,7 +250,7 @@ def app_chat_create(request: Request,
         mysql_db.rollback()
         return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
 
-    return JSONResponse({'errcode': RET.OK, 'errmsg': error_map[RET.OK]})
+    return JSONResponse({'msg': error_map[RET.OK]})
 
 
 @router.api_route(path='/ai/app/chat/message/list', methods=['POST'], summary="app chat message list")

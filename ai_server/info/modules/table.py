@@ -35,7 +35,7 @@ def table_analysis(request: Request,
         origin_img, boxes = get_box(origin_image)
     except Exception as e:
         logger.error({'EXCEPTION': e})
-        return JSONResponse(ErrorResponse(errcode=RET.SERVERERR, errmsg=error_map[RET.SERVERERR]).dict())
+        return JSONResponse(ErrorResponse(errcode=RET.SERVERERR, errmsg=error_map[RET.SERVERERR]).dict(), status_code=500)
 
     raw_boxes = split_rows(boxes)
 
@@ -63,7 +63,7 @@ def table_analysis(request: Request,
     except Exception as e:
         logger.error({'DB ERROR': e})
         mysql_db.rollback()
-        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
 
     return JSONResponse({'file_hash': req.file_hash,
                          'file_url': req.file_url,

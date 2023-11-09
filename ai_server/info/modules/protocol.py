@@ -73,6 +73,17 @@ class TokenCountRequest(BaseModel):
     prompt: str
 
 
+class AppInfoRequest(BaseModel):
+    app_id: int
+
+
+class AppInfoModifyRequest(BaseModel):
+    app_id: int
+    kb_id: int = Field(default=None)
+    name: str
+    llm_name: str
+
+
 class AppCreateRequest(BaseModel):
     name: str
     llm_name: str

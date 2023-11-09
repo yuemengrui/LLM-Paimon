@@ -23,7 +23,7 @@ def auth(request: Request,
     logger.info(str(req.dict()))
 
     if req.username.lower() in USERNAME_FILTER:
-        return JSONResponse(ErrorResponse(errcode=RET.DATAERR, errmsg=u'非法用户名').dict())
+        return JSONResponse(ErrorResponse(errcode=RET.DATAERR, errmsg=u'非法用户名').dict(), status_code=500)
 
     user = mysql_db.query(User).filter(User.username == req.username).first()
 
@@ -39,13 +39,13 @@ def auth(request: Request,
         except Exception as e:
             logger.error({'DB ERROR': e})
             mysql_db.rollback()
-            return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+            return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
 
         token = generate_token(user_id)
         return AuthResponse(token=token, expires=TOKEN_EXPIRES)
     else:
         if not crypto.verify(req.password, user.password):
-            return JSONResponse(ErrorResponse(errcode=RET.DATAERR, errmsg=u'密码错误').dict())
+            return JSONResponse(ErrorResponse(errcode=RET.DATAERR, errmsg=u'密码错误').dict(), status_code=500)
 
     token = generate_token(user.id)
     return AuthResponse(token=token, expires=TOKEN_EXPIRES)

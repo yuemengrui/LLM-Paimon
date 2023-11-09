@@ -36,7 +36,7 @@ async def file_upload(request: Request,
     file_hash = md5hex(file_data)
 
     if file_hash == '':
-        return JSONResponse(ErrorResponse(errcode=RET.IOERR, errmsg=u'文件上传失败').dict())
+        return JSONResponse(ErrorResponse(errcode=RET.IOERR, errmsg=u'文件上传失败').dict(), status_code=500)
 
     file_system = mysql_db.query(FileSystem).filter(FileSystem.file_hash == file_hash).first()
     if file_system is None:
@@ -50,7 +50,7 @@ async def file_upload(request: Request,
 
         with open(os.path.join(file_dir, file_hash), 'rb') as ff:
             if md5hex(ff.read()) != file_hash:
-                return JSONResponse(ErrorResponse(errcode=RET.IOERR, errmsg=u'文件上传失败').dict())
+                return JSONResponse(ErrorResponse(errcode=RET.IOERR, errmsg=u'文件上传失败').dict(), status_code=500)
 
         new_file = FileSystem()
         new_file.file_hash = file_hash
@@ -65,7 +65,7 @@ async def file_upload(request: Request,
         except Exception as e:
             logger.error({'EXCEPTION': e})
             mysql_db.rollback()
-            return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=u'文件上传失败').dict())
+            return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=u'文件上传失败').dict(), status_code=500)
 
     user_file = mysql_db.query(UserFileSystem).filter(UserFileSystem.file_hash == file_hash,
                                                       UserFileSystem.user_id == user_id).first()
@@ -84,7 +84,7 @@ async def file_upload(request: Request,
     except Exception as e:
         logger.error({'EXCEPTION': e})
         mysql_db.rollback()
-        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=u'文件上传失败').dict())
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=u'文件上传失败').dict(), status_code=500)
 
     if file_ext:
         file_url = THIS_SERVER_URL + '/ai/file/' + file_hash + file_ext
@@ -116,12 +116,12 @@ def file_download(request: Request,
 
     file = mysql_db.query(FileSystem).filter(FileSystem.file_hash == file_hash).first()
     if file is None:
-        return JSONResponse(ErrorResponse(errcode=RET.NODATA, errmsg=u'文件不存在').dict())
+        return JSONResponse(ErrorResponse(errcode=RET.NODATA, errmsg=u'文件不存在').dict(), status_code=500)
 
     file_path = os.path.join(file.base_dir, file_hash[:2], file_hash[2:4], file_hash)
 
     if not os.path.exists(file_path):
-        return JSONResponse(ErrorResponse(errcode=RET.NODATA, errmsg=u'文件不存在').dict())
+        return JSONResponse(ErrorResponse(errcode=RET.NODATA, errmsg=u'文件不存在').dict(), status_code=500)
 
     file_name = file_hash + file.file_ext
     if user_id:
