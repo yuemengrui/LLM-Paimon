@@ -2,12 +2,15 @@
 # @Author : YueMengRui
 import json
 import time
+import base64
 import requests
+from io import BytesIO
+from PIL import Image
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Request, Depends
 from info.utils.Authentication import verify_token
 from info import logger, limiter, get_mysql_db
-from configs import API_LIMIT, QWENVL_CHAT
+from configs import API_LIMIT, QWENVL_CHAT, THIS_SERVER_URL
 from .protocol import ErrorResponse, ChatVLRequest, ChatVLImageRequest
 from fastapi.responses import JSONResponse, StreamingResponse
 from info.mysql_models import ChatMessageRecord, ChatRecord
@@ -89,13 +92,22 @@ def llm_chat_vl(request: Request,
                 for line in resp.iter_content(chunk_size=None):
                     res = json.loads(line.decode('utf-8'))
                     res['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
+                    if res['type'] == "image":
+                        image_url = upload_file(res['image'])
+                        res.remove('image')
+                        res.update({'url': image_url})
+
                     yield f"data: {json.dumps(res, ensure_ascii=False)}\n\n"
 
                 new_message_assistant = ChatMessageRecord()
                 new_message_assistant.chat_id = req.chat_id
                 new_message_assistant.uid = req.answer_uid
                 new_message_assistant.role = 'assistant'
-                new_message_assistant.content = res['answer']
+                if res['type'] == 'image':
+                    new_message_assistant.type = 'image'
+                    new_message_assistant.url = res['url']
+                else:
+                    new_message_assistant.content = res['answer']
                 new_message_assistant.llm_name = res['model_name']
                 new_message_assistant.response = res
 
@@ -132,3 +144,18 @@ def llm_chat_vl(request: Request,
             mysql_db.rollback()
             return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
         return JSONResponse(resp)
+
+
+def upload_file(base64_str):
+    image_bytes = base64.b64decode(base64_str.encode('utf-8'))
+
+    resp = requests.post(url=THIS_SERVER_URL + '/ai/file/upload', files=image_bytes)
+    logger.info(resp.text)
+    return resp.json()['file_url']
+
+
+def base64_pil(base64_str: str):
+    image = base64.b64decode(base64_str.encode('utf-8'))
+    image = BytesIO(image)
+    image = Image.open(image)
+    return image
