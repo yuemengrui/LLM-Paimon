@@ -175,3 +175,5 @@ def llm_chat_simple(request: Request,
         resp['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
 
         return JSONResponse(resp)
+
+

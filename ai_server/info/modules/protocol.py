@@ -48,6 +48,27 @@ class ChatRequest(BaseModel):
     """
 
 
+class ChatVLImageRequest(BaseModel):
+    app_id: int
+    chat_id: int
+    uid: str
+    model_name: str = Field(default="Qwen_VL", description="模型名称")
+    url: str
+
+
+class ChatVLRequest(BaseModel):
+    app_id: int
+    chat_id: int
+    uid: str
+    answer_uid: str
+    model_name: str
+    prompt: str
+    history: List = Field(default=[], description="历史记录")
+    generation_configs: Dict = Field(default={})
+    stream: bool = Field(default=True, description="是否流式输出")
+    true_prompt: List
+
+
 class ChatResponse(BaseModel):
     model_name: str
     answer: str

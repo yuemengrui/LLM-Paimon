@@ -40,6 +40,8 @@ LLM_SERVER_APIS = {
 }
 ########################
 
+QWENVL_CHAT = 'http://127.0.0.1:5000/ai/llm/chat/qwenvl'
+
 ########################
 # Embedding Configs
 EMBEDDING_SERVER_PREFIX = 'http://127.0.0.1:6000'  # Embedding Server 地址
@@ -67,6 +69,7 @@ MILVUS_USERNAME = ''
 MILVUS_PASSWORD = ''
 ########################
 
+SYSTEM_APP_LIST = ['tableQA', '图文理解']
 ########################
 # API LIMIT Configs
 API_LIMIT = {
