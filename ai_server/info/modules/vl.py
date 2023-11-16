@@ -147,7 +147,7 @@ def llm_chat_vl(request: Request,
 
 
 def upload_file(base64_str):
-    image_bytes = base64.b64decode(base64_str.encode('utf-8'))
+    image_bytes = BytesIO(base64.b64decode(base64_str.encode('utf-8')))
 
     resp = requests.post(url=THIS_SERVER_URL + '/ai/file/upload', files=image_bytes)
     logger.info(resp.text)
