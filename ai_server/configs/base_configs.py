@@ -25,7 +25,9 @@ TOKEN_EXPIRES = 12 * 60 * 60  # token过期时间
 # File System Configs
 THIS_SERVER_URL = 'http://127.0.0.1:10000'  # 本服务地址
 FILE_SYSTEM_DIR = './file_system'
+TEMP = './temp'
 os.makedirs(FILE_SYSTEM_DIR, exist_ok=True)
+os.makedirs(TEMP, exist_ok=True)
 ########################
 
 ########################

@@ -1,5 +1,6 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
+import os
 import json
 import time
 import base64
@@ -10,7 +11,7 @@ from sqlalchemy.orm import Session
 from fastapi import APIRouter, Request, Depends
 from info.utils.Authentication import verify_token
 from info import logger, limiter, get_mysql_db
-from configs import API_LIMIT, QWENVL_CHAT, THIS_SERVER_URL
+from configs import API_LIMIT, QWENVL_CHAT, THIS_SERVER_URL, TEMP
 from .protocol import ErrorResponse, ChatVLRequest, ChatVLImageRequest
 from fastapi.responses import JSONResponse, StreamingResponse
 from info.mysql_models import ChatMessageRecord, ChatRecord
@@ -147,9 +148,14 @@ def llm_chat_vl(request: Request,
 
 
 def upload_file(base64_str):
-    image_bytes = BytesIO(base64.b64decode(base64_str.encode('utf-8')))
+    # image_bytes = BytesIO(base64.b64decode(base64_str.encode('utf-8')))
 
-    resp = requests.post(url=THIS_SERVER_URL + '/ai/file/upload/public', files={"file": image_bytes})
+    image = base64.b64decode(base64_str.encode('utf-8'))
+    image = BytesIO(image)
+    image = Image.open(image)
+    temp_path = os.path.join(TEMP, str(time.time() * 1000000) + '.jpg')
+    image.save(temp_path)
+    resp = requests.post(url=THIS_SERVER_URL + '/ai/file/upload/public', files={"file": open(temp_path, 'rb').read()})
     logger.info(resp.text)
     return resp.json()['file_url']
 
