@@ -12,9 +12,9 @@ class ErrorResponse(BaseModel):
 class FileUploadResponse(BaseModel):
     file_hash: str
     file_url: str
-    file_name: str
+    file_name: str = Field(default=None)
     file_size: int
-    file_type: str
+    file_type: str = Field(default=None)
     file_ext: str = Field(default='')
 
 
