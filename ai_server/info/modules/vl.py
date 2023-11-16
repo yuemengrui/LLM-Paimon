@@ -4,6 +4,7 @@ import os
 import json
 import time
 import base64
+import shutil
 import requests
 from io import BytesIO
 from PIL import Image
@@ -157,6 +158,7 @@ def upload_file(base64_str):
     image.save(temp_path)
     resp = requests.post(url=THIS_SERVER_URL + '/ai/file/upload/public', files={"file": open(temp_path, 'rb').read()})
     logger.info(resp.text)
+    shutil.rmtree(temp_path, ignore_errors=True)
     return resp.json()['file_url']
 
 
