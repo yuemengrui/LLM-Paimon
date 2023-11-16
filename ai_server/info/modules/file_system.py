@@ -132,3 +132,66 @@ def file_download(request: Request,
                 file_name = user_file.file_name
 
     return FileResponse(path=file_path, filename=file_name)
+
+
+@router.api_route(path='/ai/file/upload/public', methods=['POST'], response_model=FileUploadResponse,
+                  summary="file upload")
+@limiter.limit(API_LIMIT['auth'])
+async def file_upload_public(request: Request,
+                             file: UploadFile = File(...),
+                             mysql_db: Session = Depends(get_mysql_db)
+                             ):
+    file_data = await file.read()
+
+    file_ext = ''
+    try:
+        file_ext = '.' + file.filename.split('.')[-1]
+    except Exception as e:
+        logger.error({'EXCEPTION': e})
+
+    file_hash = md5hex(file_data)
+
+    if file_hash == '':
+        return JSONResponse(ErrorResponse(errcode=RET.IOERR, errmsg=u'文件上传失败').dict(), status_code=500)
+
+    file_system = mysql_db.query(FileSystem).filter(FileSystem.file_hash == file_hash).first()
+    if file_system is None:
+        file_dir = os.path.join(FILE_SYSTEM_DIR, file_hash[:2], file_hash[2:4])
+        os.makedirs(file_dir, exist_ok=True)
+
+        with open(os.path.join(file_dir, file_hash), 'wb') as f:
+            f.write(file_data)
+
+        time.sleep(0.02)
+
+        with open(os.path.join(file_dir, file_hash), 'rb') as ff:
+            if md5hex(ff.read()) != file_hash:
+                return JSONResponse(ErrorResponse(errcode=RET.IOERR, errmsg=u'文件上传失败').dict(), status_code=500)
+
+        new_file = FileSystem()
+        new_file.file_hash = file_hash
+        new_file.file_type = file.content_type
+        new_file.file_size = file.size
+        new_file.base_dir = FILE_SYSTEM_DIR
+        new_file.file_ext = file_ext
+
+        try:
+            mysql_db.add(new_file)
+            mysql_db.commit()
+        except Exception as e:
+            logger.error({'EXCEPTION': e})
+            mysql_db.rollback()
+            return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=u'文件上传失败').dict(), status_code=500)
+
+    if file_ext:
+        file_url = THIS_SERVER_URL + '/ai/file/' + file_hash + file_ext
+    else:
+        file_url = THIS_SERVER_URL + '/ai/file/' + file_hash
+
+    return FileUploadResponse(file_hash=file_hash,
+                              file_url=file_url,
+                              file_name=file.filename,
+                              file_size=file.size,
+                              file_type=file.content_type,
+                              file_ext=file_ext
+                              )
