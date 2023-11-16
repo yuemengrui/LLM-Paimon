@@ -94,7 +94,7 @@ def llm_chat_vl(request: Request,
                     res['time_cost'].update({'total': f"{time.time() - start:.3f}s"})
                     if res['type'] == "image":
                         image_url = upload_file(res['image'])
-                        res.remove('image')
+                        res.pop('image')
                         res.update({'url': image_url})
 
                     yield f"data: {json.dumps(res, ensure_ascii=False)}\n\n"
