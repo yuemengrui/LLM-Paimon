@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from info.utils.Authentication import verify_token
 from info.mysql_models import KnowledgeBase, KBData, KBDataDetail
 from .protocol import ErrorResponse, KBCreateRequest, KBDataImportRequest, KBDeleteRequest, KBDataListRequest, \
-    KBDataDetailRequest
+    KBDataDetailRequest, KBDataDeleteRequest
 from info.utils.response_code import RET, error_map
 from info.utils.api_servers.llm_base import servers_embedding_text
 from info.utils.background_tasks.kb_import_data import import_data_2_kb
@@ -116,3 +116,23 @@ def kb_data_detail(request: Request,
     data_list = mysql_db.query(KBDataDetail).filter(KBDataDetail.data_id == req.data_id).all()
 
     return JSONResponse({'list': [x.to_dict() for x in data_list]})
+
+
+@router.api_route(path='/ai/knowledge_base/data/delete', methods=['POST'], summary="knowledge_base data delete")
+@limiter.limit(API_LIMIT['auth'])
+def kb_data_delete(request: Request,
+                   req: KBDataDeleteRequest,
+                   mysql_db: Session = Depends(get_mysql_db),
+                   user_id: int = Depends(verify_token)
+                   ):
+    logger.info(str(req.dict()) + ' user_id: ' + str(user_id))
+
+    mysql_db.query(KBData).filter(KBData.id == req.data_id).update({'is_delete': True})
+    try:
+        mysql_db.commit()
+    except Exception as e:
+        logger.error({'DB ERROR': e})
+        mysql_db.rollback()
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
+
+    return JSONResponse({'msg': error_map[RET.OK]})
