@@ -6,8 +6,9 @@ from configs import API_LIMIT
 from info import logger, limiter, get_mysql_db, milvus_db
 from fastapi.responses import JSONResponse
 from info.utils.Authentication import verify_token
-from info.mysql_models import KnowledgeBase, KBData
-from .protocol import ErrorResponse, KBCreateRequest, KBDataImportRequest, KBDeleteRequest, KBDataListRequest
+from info.mysql_models import KnowledgeBase, KBData, KBDataDetail
+from .protocol import ErrorResponse, KBCreateRequest, KBDataImportRequest, KBDeleteRequest, KBDataListRequest, \
+    KBDataDetailRequest
 from info.utils.response_code import RET, error_map
 from info.utils.api_servers.llm_base import servers_embedding_text
 from info.utils.background_tasks.kb_import_data import import_data_2_kb
@@ -103,22 +104,15 @@ def kb_data_import(request: Request,
     return JSONResponse({'msg': error_map[RET.OK]})
 
 
-@router.api_route(path='/ai/knowledge_base/test', methods=['POST'], summary="knowledge_base import data")
+@router.api_route(path='/ai/knowledge_base/data/detail', methods=['POST'], summary="knowledge_base data detail")
 @limiter.limit(API_LIMIT['auth'])
-async def kb_data_import(request: Request,
-                         mysql_db: Session = Depends(get_mysql_db),
-                         ):
-    res = await request.json()
-    logger.info(res)
+def kb_data_detail(request: Request,
+                   req: KBDataDetailRequest,
+                   mysql_db: Session = Depends(get_mysql_db),
+                   user_id: int = Depends(verify_token)
+                   ):
+    logger.info(str(req.dict()) + ' user_id: ' + str(user_id))
 
-    prompt = res['prompt']
-    model_name = res['model_name']
+    data_list = mysql_db.query(KBDataDetail).filter(KBDataDetail.data_id == req.data_id).all()
 
-    embedding_resp = servers_embedding_text(sentences=[prompt], model_name=model_name)
-
-    embedding = embedding_resp.json()['embeddings'][0]
-
-    hash_list = ['6ac87e9e2774b4f96988eab5abad3d14', 'e6aade6cd38ba0b4ad45d6c7ba6ecf13']
-    milvus_db.similarity_search(model_name, embedding, expr=f"text_hash in {hash_list}")
-
-    return JSONResponse({'msg': error_map[RET.OK]})
+    return JSONResponse({'list': [x.to_dict() for x in data_list]})

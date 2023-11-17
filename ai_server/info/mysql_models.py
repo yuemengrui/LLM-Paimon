@@ -182,5 +182,7 @@ class KBDataDetail(Base, BaseModel):
 
     def to_dict(self):
         return {
-            "id": self.id
+            "id": self.id,
+            "content": self.content,
+            "content_hash": self.content_hash
         }

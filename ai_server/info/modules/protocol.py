@@ -149,6 +149,10 @@ class KBDataListRequest(BaseModel):
     kb_id: int
 
 
+class KBDataDetailRequest(BaseModel):
+    data_id: int
+
+
 class KBDataImportOne(BaseModel):
     file_hash: str
     file_name: str
