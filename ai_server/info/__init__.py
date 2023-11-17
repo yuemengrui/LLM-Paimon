@@ -15,6 +15,9 @@ from fastapi.openapi.docs import (
     get_swagger_ui_oauth2_redirect_html,
 )
 from fastapi.staticfiles import StaticFiles
+import nltk
+
+nltk.data.path = ['nltk_data'] + nltk.data.path
 
 Base.metadata.create_all(bind=engine)
 
