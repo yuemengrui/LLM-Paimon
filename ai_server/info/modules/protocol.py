@@ -128,6 +128,10 @@ class AppChatCreateRequest(BaseModel):
     name: str = Field(default=None)
 
 
+class AppChatDeleteRequest(BaseModel):
+    chat_id: int
+
+
 class AppChatMessageListRequest(BaseModel):
     chat_id: int
 

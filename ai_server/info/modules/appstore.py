@@ -8,7 +8,8 @@ from fastapi.responses import JSONResponse
 from info.utils.Authentication import verify_token
 from info.mysql_models import SystemApp, App, ChatRecord, ChatMessageRecord, KnowledgeBase
 from .protocol import AppCreateRequest, ErrorResponse, AppChatListRequest, AppChatCreateRequest, \
-    AppChatMessageListRequest, AppDeleteRequest, AppCreateSystemAppRequest, AppInfoRequest, AppInfoModifyRequest
+    AppChatMessageListRequest, AppDeleteRequest, AppCreateSystemAppRequest, AppInfoRequest, AppInfoModifyRequest, \
+    AppChatDeleteRequest
 from info.utils.response_code import RET, error_map
 
 router = APIRouter()
@@ -234,24 +235,23 @@ def app_chat_create(request: Request,
     return JSONResponse({'msg': error_map[RET.OK]})
 
 
-@router.api_route(path='/ai/app/chat/create', methods=['POST'], summary="app chat list")
+@router.api_route(path='/ai/app/chat/delete', methods=['POST'], summary="app chat delete")
 @limiter.limit(API_LIMIT['auth'])
 def app_chat_create(request: Request,
-                    req: AppChatCreateRequest,
+                    req: AppChatDeleteRequest,
                     mysql_db: Session = Depends(get_mysql_db),
                     user_id: int = Depends(verify_token)
                     ):
-    new_chat = ChatRecord()
-    new_chat.app_id = req.app_id
-    new_chat.name = req.name
+    logger.info(str(req.dict()) + ' user_id: ' + str(user_id))
+
+    mysql_db.query(ChatRecord).filter(ChatRecord.id == req.chat_id).update({'is_delete': True})
 
     try:
-        mysql_db.add(new_chat)
         mysql_db.commit()
     except Exception as e:
         logger.error({'DB ERROR': e})
         mysql_db.rollback()
-        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict())
+        return JSONResponse(ErrorResponse(errcode=RET.DBERR, errmsg=error_map[RET.DBERR]).dict(), status_code=500)
 
     return JSONResponse({'msg': error_map[RET.OK]})
 
