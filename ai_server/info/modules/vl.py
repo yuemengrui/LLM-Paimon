@@ -154,9 +154,11 @@ def upload_file(base64_str):
     image = base64.b64decode(base64_str.encode('utf-8'))
     image = BytesIO(image)
     image = Image.open(image)
-    temp_path = os.path.join(TEMP, str(time.time() * 1000000) + '.jpg')
+    file_name = str(time.time() * 1000000) + '.jpg'
+    temp_path = os.path.join(TEMP, file_name)
     image.save(temp_path)
-    resp = requests.post(url=THIS_SERVER_URL + '/ai/file/upload/public', files={"file": open(temp_path, 'rb').read()})
+    resp = requests.post(url=THIS_SERVER_URL + '/ai/file/upload/public',
+                         files={"file": (file_name, open(temp_path, 'rb'))})
     logger.info(resp.text)
     shutil.rmtree(temp_path, ignore_errors=True)
     return resp.json()['file_url']
