@@ -39,7 +39,7 @@ def auto_chunk(req, mysql_db, emb_model_list):
                 text_hashs.append(sen_hash)
 
         for emb_model in emb_model_list:
-            logger.info(f'background task: {emb_model}')
+            logger.info(f'background task: {emb_model} start......')
 
             embedding_resp = servers_embedding_text(sentences=texts, model_name=emb_model)
 
@@ -58,6 +58,7 @@ def auto_chunk(req, mysql_db, emb_model_list):
                     continue
 
                 start = start + 100
+            logger.info(f'background task: {emb_model} insert successful')
 
         new_kb_data = KBData()
         new_kb_data.kb_id = req.kb_id

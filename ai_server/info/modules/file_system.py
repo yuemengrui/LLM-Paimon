@@ -18,7 +18,7 @@ import jwt
 router = APIRouter()
 
 
-@router.api_route(path='/ai/file/upload', methods=['POST'], response_model=FileUploadResponse, summary="file upload")
+@router.api_route(path='/ai/file/upload', methods=['POST'], response_model=FileUploadResponse, summary="文件上传")
 @limiter.limit(API_LIMIT['auth'])
 async def file_upload(request: Request,
                       file: UploadFile = File(...),
@@ -135,7 +135,7 @@ def file_download(request: Request,
 
 
 @router.api_route(path='/ai/file/upload/public', methods=['POST'], response_model=FileUploadResponse,
-                  summary="file upload")
+                  summary="文件上传公开版")
 @limiter.limit(API_LIMIT['auth'])
 async def file_upload_public(request: Request,
                              file: UploadFile = File(...),

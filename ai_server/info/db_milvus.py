@@ -74,7 +74,6 @@ class MilvusDB:
             return col
 
     def get_collection(self, collection_name, embedding, create=False):
-        self.logger.info(self.collections)
         if collection_name in self.collections:
             return self.collections[collection_name]
         else:
@@ -107,7 +106,6 @@ class MilvusDB:
     def upsert_data(self, collection_name, texts: list, text_hashs: list, embeddings: list):
         self.logger.info(f"start insert data......")
         col = self.get_collection(collection_name, embeddings[0], create=True)
-        self.logger.info(col)
         if col is None:
             return False
         try:
