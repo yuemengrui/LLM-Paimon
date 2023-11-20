@@ -47,5 +47,5 @@ class ChineseTextSplitter(CharacterTextSplitter):
                 id = ls.index(ele)
                 ls = ls[:id] + [i for i in ele1_ls if i] + ls[id + 1:]
 
-        ls = [x for x in ls if len(x.strip()) > 1]
+        ls = [x.strip() for x in ls if len(x.strip()) > 1]
         return ls
