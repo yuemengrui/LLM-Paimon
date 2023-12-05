@@ -1,17 +1,18 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
 import os
+import time
 from mylogger import logger
-from info import get_mysql_db, milvus_db
-from fastapi import Depends
-from sqlalchemy.orm import Session
+from info import milvus_db
 from info.utils.get_md5 import md5hex
+from info.utils.common import cv2_to_bytes
+from info.utils.file_upload import upload_file
 from info.libs.Knowledge_Base.loader.file_loader import load_file
 from info.utils.api_servers.llm_base import servers_embedding_text
 from info.mysql_models import KnowledgeBase, KBData, KBDataDetail, FileSystem
 
 
-def auto_chunk(req, mysql_db, emb_model_list):
+def auto_chunk(req, mysql_db, embedding_model):
     for fil in req.files:
         logger.info(f"background task: {fil.file_hash} import start......")
         file_system = mysql_db.query(FileSystem).filter(FileSystem.file_hash == fil.file_hash).first()
@@ -29,36 +30,64 @@ def auto_chunk(req, mysql_db, emb_model_list):
         docs = load_file(filepath=local_file_path, ext=file_ext)
         logger.info(f"background task: {docs}")
 
-        sentences = [d.page_content for d in docs]
-        texts = []
-        text_hashs = []
-        for sen in sentences:
-            sen_hash = md5hex(sen.encode('utf-8'))
-            if sen_hash != '' and sen_hash not in text_hashs:
-                texts.append(sen)
-                text_hashs.append(sen_hash)
+        sentences = []
+        sentences_hash = []
+        total = 0
+        for doc in docs:
+            total += len(doc['chunks'])
+            for chunk in doc['chunks']:
+                chunk.update({'sentence_hash': None})
+                if chunk['type'] == 'text':
+                    sen_hash = md5hex(chunk['content'].encode('utf-8'))
+                    if sen_hash != '':
+                        chunk.update({'sentence_hash': sen_hash})
+                        sentences.append(chunk['content'])
+                        sentences_hash.append(sen_hash)
+                elif chunk['type'] == 'table':
+                    if len(chunk['table_caption']) > 0:
+                        sen_hash = md5hex(chunk['table_caption'].encode('utf-8'))
+                        if sen_hash != '':
+                            chunk.update({'sentence_hash': sen_hash})
+                            sentences.append(chunk['table_caption'])
+                            sentences_hash.append(sen_hash)
+                    chunk.update(
+                        {'url': upload_file(cv2_to_bytes(chunk['image']), str(time.time() * 1000000) + '.jpg')})
+                elif chunk['type'] == 'figure':
+                    if len(chunk['figure_caption']) > 0:
+                        sen_hash = md5hex(chunk['figure_caption'].encode('utf-8'))
+                        if sen_hash != '':
+                            chunk.update({'sentence_hash': sen_hash})
+                            sentences.append(chunk['figure_caption'])
+                            sentences_hash.append(sen_hash)
+                    chunk.update(
+                        {'url': upload_file(cv2_to_bytes(chunk['image']), str(time.time() * 1000000) + '.jpg')})
 
-        for emb_model in emb_model_list:
-            logger.info(f'background task: {emb_model} start......')
+        logger.info(f'background task: insert into milvus start......')
 
-            embedding_resp = servers_embedding_text(sentences=texts, model_name=emb_model)
+        embedding_resp = servers_embedding_text(sentences=sentences, model_name=embedding_model)
 
-            embeddings = embedding_resp.json()['embeddings']
+        embeddings = embedding_resp.json()['embeddings']
 
-            start = 0
-            while True:
-                if start > len(texts):
-                    break
+        start = 0
+        inert_failed = 0
+        while True:
+            if start > len(sentences):
+                break
 
-                if not milvus_db.upsert_data(collection_name=emb_model,
-                                             texts=texts[start:start + 100],
-                                             text_hashs=text_hashs[start:start + 100],
-                                             embeddings=embeddings[start:start + 100]):
-                    logger.error(f"background task: {fil.file_hash} import failed: milvus insert data failed!!!")
-                    continue
+            if not milvus_db.upsert_data(collection_name=embedding_model,
+                                         texts=sentences[start:start + 100],
+                                         text_hashs=sentences_hash[start:start + 100],
+                                         embeddings=embeddings[start:start + 100]):
+                logger.error(f"background task: {fil.file_hash} import failed: milvus insert data failed!!!")
+                inert_failed = 1
+                break
 
-                start = start + 100
-            logger.info(f'background task: {emb_model} insert successful')
+            start = start + 100
+
+        if inert_failed == 1:
+            continue
+
+        logger.info(f'background task: insert into milvus successful')
 
         new_kb_data = KBData()
         new_kb_data.kb_id = req.kb_id
@@ -68,18 +97,29 @@ def auto_chunk(req, mysql_db, emb_model_list):
         new_kb_data.file_type = fil.file_type
         new_kb_data.file_size = fil.file_size
         new_kb_data.file_url = fil.file_url
-        new_kb_data.data_total = len(texts)
+        new_kb_data.data_total = total
         mysql_db.add(new_kb_data)
         mysql_db.flush()
         data_id = new_kb_data.id
 
         kb_data_detail_list = []
-        for i in range(len(text_hashs)):
-            new_data_detail = KBDataDetail()
-            new_data_detail.data_id = data_id
-            new_data_detail.content = texts[i]
-            new_data_detail.content_hash = text_hashs[i]
-            kb_data_detail_list.append(new_data_detail)
+        for d in docs:
+            for c in d['chunks']:
+                new_data_detail = KBDataDetail()
+                new_data_detail.page = d['page']
+                new_data_detail.data_id = data_id
+                new_data_detail.content_hash = c['sentence_hash']
+
+                if c['type'] == 'text':
+                    new_data_detail.content = c['content']
+                elif c['type'] == 'table':
+                    new_data_detail.content = c['table_caption']
+                    new_data_detail.url = c['url']
+                elif c['type'] == 'figure':
+                    new_data_detail.content = c['figure_caption']
+                    new_data_detail.url = c['url']
+
+                kb_data_detail_list.append(new_data_detail)
 
         mysql_db.add_all(kb_data_detail_list)
         try:
@@ -94,6 +134,5 @@ def import_data_2_kb(req, mysql_db):
     logger.info('background task import data start......')
     kb = mysql_db.query(KnowledgeBase).get(req.kb_id)
     if kb:
-        emb_model_list = eval(kb.emb_model_list)
         if req.method_id == 1:
-            auto_chunk(req, mysql_db, emb_model_list)
+            auto_chunk(req, mysql_db, kb.embedding_model)

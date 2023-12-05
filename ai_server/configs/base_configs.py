@@ -9,9 +9,12 @@ FASTAPI_PORT = 10000
 LOG_DIR = 'logs'
 os.makedirs(LOG_DIR, exist_ok=True)
 
+UPLOAD_FILE_URL = 'http://127.0.0.1:10000/ai/file/upload/public'
+
 ########################
 API_OCR_GENERAL = 'http://127.0.0.1:6000/ai/ocr/general'
-API_OCR_BYTE = 'http://127.0.0.1:6000/ai/ocr/byte'
+API_TABLE_ANALYSIS = 'http://127.0.0.1:6000/ai/table/analysis'
+API_LAYOUT_ANALYSIS = 'http://127.0.0.1:6000/ai/layout/analysis'
 ########################
 
 ########################

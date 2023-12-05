@@ -21,7 +21,7 @@ def get_final_prompt(req, app_id, mysql_db):
             embedding_model = None
             kb = mysql_db.query(KnowledgeBase).get(app.kb_id)
             if kb:
-                embedding_model = eval(kb.emb_model_list)[0]
+                embedding_model = kb.embedding_model
                 kb_data_list = mysql_db.query(KBData).filter(KBData.kb_id == app.kb_id, KBData.is_delete == False).all()
                 if kb_data_list:
                     for kb_data in kb_data_list:

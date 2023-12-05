@@ -1,42 +1,28 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
-import numpy as np
-import cv2
 import requests
-import base64
 from mylogger import logger
-from configs import API_OCR_BYTE, API_OCR_GENERAL
+from info.utils.common import cv2_to_base64
+from configs import API_OCR_GENERAL
 
 
-def get_ocr_byte_res(img):
+def get_ocr_general_res(img, return_str=False, **kwargs):
     data = {
-        'file': np.array(cv2.imencode('.jpg', img)[1]).tobytes()
+        'image': cv2_to_base64(img)
     }
 
-    try:
-        res = requests.post(url=API_OCR_BYTE,
-                            files=data)
-        txt = res.json()['data']['results']
-    except Exception as e:
-        logger.error({'EXCEPTION': e})
-        txt = ''
-
-    return txt
-
-
-def get_ocr_general_res(img):
-    data = {
-        'image': base64.b64encode(np.array(cv2.imencode('.png', img)[1]).tobytes()).decode()
-    }
+    data.update(kwargs)
 
     try:
         res = requests.post(url=API_OCR_GENERAL,
                             json=data)
 
-        txt_list = res.json()['data']['results']
-        txt_list = [x['text'][0] for x in txt_list]
-        txt = ''.join(txt_list)
-        return txt
+        if return_str:
+            txt_list = [x['text'][0] for x in res.json()['data']]
+            return ''.join(txt_list)
+
+        return res.json()['data']
+
     except Exception as e:
         logger.error({'EXCEPTION': e})
-        return ''
+        return None

@@ -13,7 +13,7 @@ from info.mysql_models import ChatMessageRecord, FileSystem
 from info.utils.table_process import split_rows
 from info.utils.response_code import RET, error_map
 from info.utils.box_segmentation import get_box
-from info.utils.ocr import get_ocr_byte_res
+from info.utils.ocr import get_ocr_general_res
 
 router = APIRouter()
 
@@ -35,7 +35,8 @@ def table_analysis(request: Request,
         origin_img, boxes = get_box(origin_image)
     except Exception as e:
         logger.error({'EXCEPTION': e})
-        return JSONResponse(ErrorResponse(errcode=RET.SERVERERR, errmsg=error_map[RET.SERVERERR]).dict(), status_code=500)
+        return JSONResponse(ErrorResponse(errcode=RET.SERVERERR, errmsg=error_map[RET.SERVERERR]).dict(),
+                            status_code=500)
 
     raw_boxes = split_rows(boxes)
 
@@ -44,7 +45,7 @@ def table_analysis(request: Request,
         temp_raw = []
         for box in raw:
             crop_img = origin_img[box[1]:box[3], box[0]:box[2]]
-            ocr_res = get_ocr_byte_res(crop_img)
+            ocr_res = get_ocr_general_res(crop_img, return_str=True)
             temp_raw.append(ocr_res)
         raw_text.append(' | '.join(temp_raw))
 
@@ -68,4 +69,3 @@ def table_analysis(request: Request,
     return JSONResponse({'file_hash': req.file_hash,
                          'file_url': req.file_url,
                          'table_content': table_content})
-

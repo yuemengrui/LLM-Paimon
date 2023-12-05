@@ -133,14 +133,14 @@ class KnowledgeBase(Base, BaseModel):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, nullable=False)
     name = Column(String(32), nullable=False)
-    emb_model_list = Column(String(512), nullable=False)
+    embedding_model = Column(String(32), nullable=False)
     is_delete = Column(Boolean, default=False)
 
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
-            "embedding_model_list": eval(self.emb_model_list)
+            "embedding_model": self.embedding_model
         }
 
 
@@ -177,12 +177,18 @@ class KBDataDetail(Base, BaseModel):
     __tablename__ = 'kb_data_detail'
     id = Column(Integer, primary_key=True)
     data_id = Column(Integer, nullable=False)
-    content = Column(TEXT, nullable=False)
-    content_hash = Column(String(64), nullable=False)
+    type = Column(String(16), nullable=False)  # text, table, figure
+    page = Column(Integer)
+    content = Column(TEXT)
+    content_hash = Column(String(64))
+    url = Column(String(512), comment="图片url")
 
     def to_dict(self):
         return {
             "id": self.id,
+            "type": self.type,
+            "page": self.page,
             "content": self.content,
-            "content_hash": self.content_hash
+            "content_hash": self.content_hash,
+            "url": self.url
         }
