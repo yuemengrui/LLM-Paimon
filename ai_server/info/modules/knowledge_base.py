@@ -40,7 +40,7 @@ def kb_create(request: Request,
     new_kb = KnowledgeBase()
     new_kb.user_id = user_id
     new_kb.name = req.name
-    new_kb.emb_model_list = str(req.embedding_model_list)
+    new_kb.embedding_model = req.embedding_model
 
     try:
         mysql_db.add(new_kb)

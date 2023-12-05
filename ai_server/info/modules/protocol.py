@@ -138,7 +138,7 @@ class AppChatMessageListRequest(BaseModel):
 
 class KBCreateRequest(BaseModel):
     name: str
-    embedding_model_list: List[str]
+    embedding_model: str
 
 
 class KBDeleteRequest(BaseModel):
