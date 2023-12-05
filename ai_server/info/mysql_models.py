@@ -182,6 +182,7 @@ class KBDataDetail(Base, BaseModel):
     content = Column(TEXT)
     content_hash = Column(String(64))
     url = Column(String(512), comment="图片url")
+    html = Column(TEXT)
 
     def to_dict(self):
         return {
@@ -190,5 +191,6 @@ class KBDataDetail(Base, BaseModel):
             "page": self.page,
             "content": self.content,
             "content_hash": self.content_hash,
-            "url": self.url
+            "url": self.url,
+            "html": self.html
         }

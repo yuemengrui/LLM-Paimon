@@ -24,6 +24,9 @@ class PDFLayoutLoader:
         return base64.b64encode(np.array(cv2.imencode('.jpg', image)[1]).tobytes()).decode('utf-8')
 
     def ocr(self, image):
+        if image.size < 10:
+            return []
+
         try:
             res = requests.post(url=API_OCR_GENERAL, json={'image': self.cv2_to_base64(image)})
             return [x['text'][0] for x in res.json()['data']]

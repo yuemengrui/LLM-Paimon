@@ -111,11 +111,15 @@ def auto_chunk(req, mysql_db, embedding_model):
                 new_data_detail.content_hash = c['sentence_hash']
 
                 if c['type'] == 'text':
+                    new_data_detail.type = 'text'
                     new_data_detail.content = c['content']
                 elif c['type'] == 'table':
+                    new_data_detail.type = 'table'
                     new_data_detail.content = c['table_caption']
                     new_data_detail.url = c['url']
+                    new_data_detail.html = c['html']
                 elif c['type'] == 'figure':
+                    new_data_detail.type = 'figure'
                     new_data_detail.content = c['figure_caption']
                     new_data_detail.url = c['url']
 
