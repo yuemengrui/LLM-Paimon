@@ -8,9 +8,9 @@ from info.utils.api_servers.llm_base import servers_llm_chat, servers_embedding_
 from configs.prompt_template import multiqueryretriever_prompt_template
 
 
-def multiquery_retriever(query, model_name, text_hash_list):
+def multiquery_retriever(query, llm_name, embedding_model, text_hash_list):
     queries = [query]
-    resp = servers_llm_chat(prompt=multiqueryretriever_prompt_template.format(query=query), model_name=model_name)
+    resp = servers_llm_chat(prompt=multiqueryretriever_prompt_template.format(query=query), model_name=llm_name)
     logger.info(f"multiquery_retriever: {resp}")
     resp_json_data = None
     if resp:
@@ -39,9 +39,9 @@ def multiquery_retriever(query, model_name, text_hash_list):
     related_docs = []
     text_hash_filter = []
     for q in queries:
-        embedding = servers_embedding_text(sentences=[q], model_name=model_name).json()['embeddings'][0]
+        embedding = servers_embedding_text(sentences=[q], model_name=embedding_model).json()['embeddings'][0]
 
-        results = milvus_db.similarity_search(model_name, embedding, expr=f"text_hash in {text_hash_list}", threshold=0.85)
+        results = milvus_db.similarity_search(embedding_model, embedding, expr=f"text_hash in {text_hash_list}", threshold=0.85)
 
         for r in results:
             if r['text_hash'] not in text_hash_filter:

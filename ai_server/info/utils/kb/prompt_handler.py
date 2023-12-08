@@ -33,7 +33,8 @@ def get_final_prompt(req, app_id, mysql_db):
 
             if all([text_hash_list, embedding_model]):
                 if app.is_multiQueryRetriever_enabled:
-                    queries, docs, context = multiquery_retriever(prompt, embedding_model, list(set(text_hash_list)))
+                    queries, docs, context = multiquery_retriever(prompt, app.llm_name, embedding_model,
+                                                                  list(set(text_hash_list)))
                     temp_docs = {}
                     for d in docs:
                         kb_dat = data_chunk_map[d['text_hash']]
