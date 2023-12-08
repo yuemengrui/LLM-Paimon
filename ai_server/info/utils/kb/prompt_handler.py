@@ -28,8 +28,9 @@ def get_final_prompt(req, app_id, mysql_db):
                         data_chunks = mysql_db.query(KBDataDetail).filter(KBDataDetail.data_id == kb_data.id).all()
                         if data_chunks:
                             for c in data_chunks:
-                                data_chunk_map.update({c.content_hash: kb_data.to_dict()})
-                                text_hash_list.append(c.content_hash)
+                                if c.content_hash is not None:
+                                    data_chunk_map.update({c.content_hash: kb_data.to_dict()})
+                                    text_hash_list.append(c.content_hash)
 
             if all([text_hash_list, embedding_model]):
                 if app.is_multiQueryRetriever_enabled:
