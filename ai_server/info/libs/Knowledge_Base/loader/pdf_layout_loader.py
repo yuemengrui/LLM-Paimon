@@ -123,9 +123,10 @@ class PDFLayoutLoader:
                     end_y = min(lay['box'][1], end_y)
                     continue
                 else:
-                    top_text_list = self.ocr(image[start_y:lay['box'][1], :])
-                    if len(top_text_list) > 0:
-                        page_content.append({'label': 'text', 'text': '\n'.join(top_text_list)})
+                    if lay['label'] != 'text':
+                        top_text_list = self.ocr(image[start_y:lay['box'][1], :])
+                        if len(top_text_list) > 0:
+                            page_content.append({'label': 'text', 'text': '\n'.join(top_text_list)})
 
                     if lay['label'] == 'directory':
                         page_content.append({'label': 'directory', 'text': ''})
