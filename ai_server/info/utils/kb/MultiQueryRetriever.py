@@ -39,7 +39,11 @@ def multiquery_retriever(query, llm_name, embedding_model, text_hash_list):
     related_docs = []
     text_hash_filter = []
     for q in queries:
-        embedding = servers_embedding_text(sentences=[q], model_name=embedding_model).json()['embeddings'][0]
+        if embedding_model == 'bge_large_zh':
+            sentences = ["为这个句子生成表示以用于检索相关文章：" + q]
+        else:
+            sentences = [q]
+        embedding = servers_embedding_text(sentences=sentences, model_name=embedding_model).json()['embeddings'][0]
 
         results = milvus_db.similarity_search(embedding_model, embedding, expr=f"text_hash in {text_hash_list}", threshold=0.85)
 
