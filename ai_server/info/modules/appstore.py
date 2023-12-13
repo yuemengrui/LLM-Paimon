@@ -61,7 +61,12 @@ def get_app_info(request: Request,
     if app_info is None:
         return JSONResponse(ErrorResponse(errcode=RET.NODATA, errmsg=error_map[RET.NODATA]).dict(), status_code=400)
 
-    return JSONResponse(app_info.to_dict())
+    resp = app_info.to_dict()
+    kb = mysql_db.query(KnowledgeBase).get(app_info.kb_id)
+    if kb:
+        resp.update({'kb_name': kb.name})
+
+    return JSONResponse(resp)
 
 
 @router.api_route(path='/ai/app/info/modify', methods=['POST'], summary="app info modify")
