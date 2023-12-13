@@ -4,6 +4,7 @@ import re
 import json
 from mylogger import logger
 from info import milvus_db
+from info.utils.common import paser_str_to_json
 from info.utils.api_servers.llm_base import servers_llm_chat, servers_embedding_text
 from configs.prompt_template import multiqueryretriever_prompt_template
 
@@ -14,20 +15,7 @@ def multiquery_retriever(query, llm_name, embedding_model, text_hash_list):
     logger.info(f"multiquery_retriever: {resp}")
     resp_json_data = None
     if resp:
-        result = re.search(r"```json(.*?)```", resp, re.DOTALL)
-        if result:
-            try:
-                resp_json_data = json.loads(result.group(1))
-            except:
-                pass
-
-        if resp_json_data is None:
-            result = re.search(r"{(.*?)}", resp, re.DOTALL)
-            if result:
-                try:
-                    resp_json_data = json.loads('{' + result.group(1) + '}')
-                except:
-                    pass
+        resp_json_data = paser_str_to_json(resp)
 
     if resp_json_data:
         logger.info(f"multiquery_retriever: json: {resp_json_data}")
@@ -45,7 +33,8 @@ def multiquery_retriever(query, llm_name, embedding_model, text_hash_list):
             sentences = [q]
         embedding = servers_embedding_text(sentences=sentences, model_name=embedding_model).json()['embeddings'][0]
 
-        results = milvus_db.similarity_search(embedding_model, embedding, expr=f"text_hash in {text_hash_list}", threshold=0.85)
+        results = milvus_db.similarity_search(embedding_model, embedding, expr=f"text_hash in {text_hash_list}",
+                                              threshold=0.85)
 
         for r in results:
             if r['text_hash'] not in text_hash_filter:
@@ -71,5 +60,3 @@ def multiquery_retriever(query, llm_name, embedding_model, text_hash_list):
     logger.info(f"multiquery_retriever: context: {context}")
 
     return queries, related_docs, context
-
-

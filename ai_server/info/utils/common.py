@@ -1,6 +1,8 @@
 # *_*coding:utf-8 *_*
 # @Author : YueMengRui
+import re
 import cv2
+import json
 import base64
 import requests
 import numpy as np
@@ -63,3 +65,26 @@ def resize_4096(img):
         img = cv2.resize(img, dsize=None, fx=scale, fy=scale)
 
     return img, scale
+
+
+def paser_str_to_json(data: str):
+    try:
+        return json.loads(data)
+    except:
+        pass
+
+    result = re.search(r"```json(.*?)```", data, re.DOTALL)
+    if result:
+        try:
+            return json.loads(result.group(1))
+        except:
+            pass
+
+    result = re.search(r"{(.*?)}", data, re.DOTALL)
+    if result:
+        try:
+            return json.loads('{' + result.group(1) + '}')
+        except:
+            pass
+
+    return None
