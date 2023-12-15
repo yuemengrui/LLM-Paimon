@@ -39,6 +39,6 @@ def load_file(filepath, ext=None, pdf=False):
 
         textsplitter = ChineseTextSplitter(pdf=pdf)
         docs = loader.load_and_split(text_splitter=textsplitter)
-        docs = [{'page': None, 'chunks': [{'type': 'text', 'content': x.page_content} for x in docs]}]
+        docs = [{'type': 'text', 'content': x.page_content, 'page': None} for x in docs]
 
     return docs

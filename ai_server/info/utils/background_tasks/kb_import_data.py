@@ -32,35 +32,33 @@ def auto_chunk(req, mysql_db, embedding_model):
 
         sentences = []
         sentences_hash = []
-        total = 0
-        for doc in docs:
-            total += len(doc['chunks'])
-            for chunk in doc['chunks']:
-                chunk.update({'sentence_hash': None})
-                if chunk['type'] == 'text':
-                    sen_hash = md5hex(chunk['content'].encode('utf-8'))
+        total = len(docs)
+        for chunk in docs:
+            chunk.update({'sentence_hash': None})
+            if chunk['type'] == 'text':
+                sen_hash = md5hex(chunk['content'].encode('utf-8'))
+                if sen_hash != '':
+                    chunk.update({'sentence_hash': sen_hash})
+                    sentences.append(chunk['content'])
+                    sentences_hash.append(sen_hash)
+            elif chunk['type'] == 'table':
+                if len(chunk['table_caption']) > 0:
+                    sen_hash = md5hex(chunk['table_caption'].encode('utf-8'))
                     if sen_hash != '':
                         chunk.update({'sentence_hash': sen_hash})
-                        sentences.append(chunk['content'])
+                        sentences.append(chunk['table_caption'])
                         sentences_hash.append(sen_hash)
-                elif chunk['type'] == 'table':
-                    if len(chunk['table_caption']) > 0:
-                        sen_hash = md5hex(chunk['table_caption'].encode('utf-8'))
-                        if sen_hash != '':
-                            chunk.update({'sentence_hash': sen_hash})
-                            sentences.append(chunk['table_caption'])
-                            sentences_hash.append(sen_hash)
-                    chunk.update(
-                        {'url': upload_file(cv2_to_bytes(chunk['image']), str(time.time() * 1000000) + '.jpg')})
-                elif chunk['type'] == 'figure':
-                    if len(chunk['figure_caption']) > 0:
-                        sen_hash = md5hex(chunk['figure_caption'].encode('utf-8'))
-                        if sen_hash != '':
-                            chunk.update({'sentence_hash': sen_hash})
-                            sentences.append(chunk['figure_caption'])
-                            sentences_hash.append(sen_hash)
-                    chunk.update(
-                        {'url': upload_file(cv2_to_bytes(chunk['image']), str(time.time() * 1000000) + '.jpg')})
+                chunk.update(
+                    {'url': upload_file(cv2_to_bytes(chunk['image']), str(time.time() * 1000000) + '.jpg')})
+            elif chunk['type'] == 'figure':
+                if len(chunk['figure_caption']) > 0:
+                    sen_hash = md5hex(chunk['figure_caption'].encode('utf-8'))
+                    if sen_hash != '':
+                        chunk.update({'sentence_hash': sen_hash})
+                        sentences.append(chunk['figure_caption'])
+                        sentences_hash.append(sen_hash)
+                chunk.update(
+                    {'url': upload_file(cv2_to_bytes(chunk['image']), str(time.time() * 1000000) + '.jpg')})
 
         logger.info(f'background task: insert into milvus start......')
 
@@ -103,27 +101,26 @@ def auto_chunk(req, mysql_db, embedding_model):
         data_id = new_kb_data.id
 
         kb_data_detail_list = []
-        for d in docs:
-            for c in d['chunks']:
-                new_data_detail = KBDataDetail()
-                new_data_detail.page = d['page']
-                new_data_detail.data_id = data_id
-                new_data_detail.content_hash = c['sentence_hash']
+        for c in docs:
+            new_data_detail = KBDataDetail()
+            new_data_detail.page = c['page']
+            new_data_detail.data_id = data_id
+            new_data_detail.content_hash = c['sentence_hash']
 
-                if c['type'] == 'text':
-                    new_data_detail.type = 'text'
-                    new_data_detail.content = c['content']
-                elif c['type'] == 'table':
-                    new_data_detail.type = 'table'
-                    new_data_detail.content = c['table_caption']
-                    new_data_detail.url = c['url']
-                    new_data_detail.html = c['html']
-                elif c['type'] == 'figure':
-                    new_data_detail.type = 'figure'
-                    new_data_detail.content = c['figure_caption']
-                    new_data_detail.url = c['url']
+            if c['type'] == 'text':
+                new_data_detail.type = 'text'
+                new_data_detail.content = c['content']
+            elif c['type'] == 'table':
+                new_data_detail.type = 'table'
+                new_data_detail.content = c['table_caption']
+                new_data_detail.url = c['url']
+                new_data_detail.html = c['html']
+            elif c['type'] == 'figure':
+                new_data_detail.type = 'figure'
+                new_data_detail.content = c['figure_caption']
+                new_data_detail.url = c['url']
 
-                kb_data_detail_list.append(new_data_detail)
+            kb_data_detail_list.append(new_data_detail)
 
         mysql_db.add_all(kb_data_detail_list)
         try:

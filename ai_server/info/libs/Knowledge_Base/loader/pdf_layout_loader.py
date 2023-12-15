@@ -81,6 +81,11 @@ class PDFLayoutLoader:
         return all_pages
 
     def merge_chunks(self, docs, split=''):
+        """
+        :param docs:
+        :param split:
+        :return: [{'type':'', 'content':'', 'page':'1,2'}]
+        """
         chunks = []
         temp = []
         for d in docs:
@@ -89,7 +94,8 @@ class PDFLayoutLoader:
                     if len(temp) > 0:
                         chunks.append({'type': 'text',
                                        'content': split.join([x[0] for x in temp]),
-                                       'page': list(set([x[1] for x in temp]))})
+                                       'page': ','.join(list(map(str, set([x[1] for x in temp]))))
+                                       })
                         temp = []
 
                     if len(i['text'].strip()) > 0:
@@ -98,7 +104,8 @@ class PDFLayoutLoader:
                     if len(temp) > 0:
                         chunks.append({'type': 'text',
                                        'content': split.join([x[0] for x in temp]),
-                                       'page': list(set([x[1] for x in temp]))})
+                                       'page': ','.join(list(map(str, set([x[1] for x in temp]))))
+                                       })
                         temp = []
                     del i['label']
                     chunks.append({'type': 'table', **i})
@@ -106,7 +113,8 @@ class PDFLayoutLoader:
                     if len(temp) > 0:
                         chunks.append({'type': 'text',
                                        'content': split.join([x[0] for x in temp]),
-                                       'page': list(set([x[1] for x in temp]))})
+                                       'page': ','.join(list(map(str, set([x[1] for x in temp]))))
+                                       })
                         temp = []
                     del i['label']
                     chunks.append({'type': 'figure', **i})
@@ -117,7 +125,8 @@ class PDFLayoutLoader:
         if len(temp) > 0:
             chunks.append({'type': 'text',
                            'content': split.join([x[0] for x in temp]),
-                           'page': list(set([x[1] for x in temp]))})
+                           'page': ','.join(list(map(str, set([x[1] for x in temp]))))
+                           })
 
         return chunks
 

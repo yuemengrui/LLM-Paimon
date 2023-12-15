@@ -178,7 +178,7 @@ class KBDataDetail(Base, BaseModel):
     id = Column(Integer, primary_key=True)
     data_id = Column(Integer, nullable=False)
     type = Column(String(16), nullable=False)  # text, table, figure
-    page = Column(Integer)
+    page = Column(String(16))
     content = Column(TEXT)
     content_hash = Column(String(64))
     url = Column(String(512), comment="图片url")
