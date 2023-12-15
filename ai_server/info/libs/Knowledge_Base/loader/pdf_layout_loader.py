@@ -108,7 +108,7 @@ class PDFLayoutLoader:
                                        })
                         temp = []
                     del i['label']
-                    chunks.append({'type': 'table', **i})
+                    chunks.append({'type': 'table', 'page': str(d['page']), **i})
                 elif i['label'] == 'figure':
                     if len(temp) > 0:
                         chunks.append({'type': 'text',
@@ -117,7 +117,7 @@ class PDFLayoutLoader:
                                        })
                         temp = []
                     del i['label']
-                    chunks.append({'type': 'figure', **i})
+                    chunks.append({'type': 'figure', 'page': str(d['page']), **i})
                 else:
                     if len(i['text'].strip()) > 0:
                         temp.append([i['text'].strip(), d['page']])
