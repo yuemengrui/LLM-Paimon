@@ -172,6 +172,8 @@ class PDFLayoutLoader:
                 elif lay['label'] == 'footer':
                     end_y = min(lay['box'][1], end_y)
                     continue
+                elif lay['label'] == 'seal':
+                    continue
                 else:
                     if lay['label'] != 'text':
                         top_text_list = self.ocr(image[start_y:lay['box'][1], :])
