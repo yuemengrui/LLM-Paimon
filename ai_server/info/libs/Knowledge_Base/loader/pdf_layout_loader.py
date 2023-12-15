@@ -43,7 +43,7 @@ class PDFLayoutLoader:
             logger.error({'EXCEPTION': e})
             return []
 
-    def merge_chunks(self, docs):
+    def merge_chunks_one_page(self, docs, split=''):
         all_pages = []
         for d in docs:
             chunks = []
@@ -51,20 +51,20 @@ class PDFLayoutLoader:
             for i in d['page_content']:
                 if i['label'] == 'title':
                     if len(temp) > 0:
-                        chunks.append({'type': 'text', 'content': '\n'.join(deepcopy(temp))})
+                        chunks.append({'type': 'text', 'content': split.join(deepcopy(temp))})
                         temp = []
 
                     if len(i['text'].strip()) > 0:
                         temp.append(i['text'].strip())
                 elif i['label'] == 'table':
                     if len(temp) > 0:
-                        chunks.append({'type': 'text', 'content': '\n'.join(deepcopy(temp))})
+                        chunks.append({'type': 'text', 'content': split.join(deepcopy(temp))})
                         temp = []
                     del i['label']
                     chunks.append({'type': 'table', **i})
                 elif i['label'] == 'figure':
                     if len(temp) > 0:
-                        chunks.append({'type': 'text', 'content': '\n'.join(deepcopy(temp))})
+                        chunks.append({'type': 'text', 'content': split.join(deepcopy(temp))})
                         temp = []
                     del i['label']
                     chunks.append({'type': 'figure', **i})
@@ -73,12 +73,53 @@ class PDFLayoutLoader:
                         temp.append(i['text'].strip())
 
             if len(temp) > 0:
-                chunks.append({'type': 'text', 'content': '\n'.join(deepcopy(temp))})
+                chunks.append({'type': 'text', 'content': split.join(deepcopy(temp))})
 
             if len(chunks) > 0:
                 all_pages.append({'page': d['page'], 'chunks': chunks})
 
         return all_pages
+
+    def merge_chunks(self, docs, split=''):
+        chunks = []
+        temp = []
+        for d in docs:
+            for i in d['page_content']:
+                if i['label'] == 'title':
+                    if len(temp) > 0:
+                        chunks.append({'type': 'text',
+                                       'content': split.join([x[0] for x in temp]),
+                                       'page': list(set([x[1] for x in temp]))})
+                        temp = []
+
+                    if len(i['text'].strip()) > 0:
+                        temp.append([i['text'].strip(), d['page']])
+                elif i['label'] == 'table':
+                    if len(temp) > 0:
+                        chunks.append({'type': 'text',
+                                       'content': split.join([x[0] for x in temp]),
+                                       'page': list(set([x[1] for x in temp]))})
+                        temp = []
+                    del i['label']
+                    chunks.append({'type': 'table', **i})
+                elif i['label'] == 'figure':
+                    if len(temp) > 0:
+                        chunks.append({'type': 'text',
+                                       'content': split.join([x[0] for x in temp]),
+                                       'page': list(set([x[1] for x in temp]))})
+                        temp = []
+                    del i['label']
+                    chunks.append({'type': 'figure', **i})
+                else:
+                    if len(i['text'].strip()) > 0:
+                        temp.append([i['text'].strip(), d['page']])
+
+        if len(temp) > 0:
+            chunks.append({'type': 'text',
+                           'content': split.join([x[0] for x in temp]),
+                           'page': list(set([x[1] for x in temp]))})
+
+        return chunks
 
     def load(self, pdf_path: str):
         """
