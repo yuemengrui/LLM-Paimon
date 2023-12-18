@@ -3,15 +3,14 @@
 from fastapi import APIRouter, Request, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from configs import API_LIMIT
-from info import logger, limiter, get_mysql_db, milvus_db
+from info import logger, limiter, get_mysql_db
 from fastapi.responses import JSONResponse
 from info.utils.Authentication import verify_token
 from info.mysql_models import KnowledgeBase, KBData, KBDataDetail
 from .protocol import ErrorResponse, KBCreateRequest, KBDataImportRequest, KBDeleteRequest, KBDataListRequest, \
     KBDataDetailRequest, KBDataDeleteRequest
 from info.utils.response_code import RET, error_map
-from info.utils.api_servers.llm_base import servers_embedding_text
-from info.utils.background_tasks.kb_import_data import import_data_2_kb
+from info.background_tasks.kb_import_data import import_data_2_kb
 
 router = APIRouter()
 

@@ -5,6 +5,7 @@ import fitz
 import base64
 import requests
 import numpy as np
+from typing import List
 from copy import deepcopy
 from mylogger import logger
 from configs import API_TABLE_ANALYSIS, API_OCR_GENERAL, API_LAYOUT_ANALYSIS
@@ -43,7 +44,36 @@ class PDFLayoutLoader:
             logger.error({'EXCEPTION': e})
             return []
 
-    def merge_chunks_one_page(self, docs, split=''):
+    def merge_line(self, text: str):
+        for i in range(len(text) - 1, 0, -1):
+            if text[i] == '\n':
+                if text[i - 1] not in '!！?？。':
+                    text = text[:i] + text[i + 1:]
+
+        return text
+
+    def merge_content(self, data: List):
+        """
+        :param data: [['type', 'text', 'page']]
+        :return:
+        """
+        content_list = []
+        temp = []
+        for dat in data:
+            if dat[0] == 'title':
+                if len(temp) > 0:
+                    content_list.append(self.merge_line('\n'.join(deepcopy(temp))))
+                    temp = []
+                content_list.append(dat[1])
+            else:
+                temp.append(dat[1])
+
+        if len(temp) > 0:
+            content_list.append(self.merge_line('\n'.join(deepcopy(temp))))
+
+        return '\n'.join(content_list)
+
+    def merge_chunks_one_page(self, docs, split='\n'):
         all_pages = []
         for d in docs:
             chunks = []
@@ -80,7 +110,7 @@ class PDFLayoutLoader:
 
         return all_pages
 
-    def merge_chunks(self, docs, split=''):
+    def merge_chunks(self, docs):
         """
         :param docs:
         :param split:
@@ -93,18 +123,19 @@ class PDFLayoutLoader:
                 if i['label'] == 'title':
                     if len(temp) > 0:
                         chunks.append({'type': 'text',
-                                       'content': split.join([x[0] for x in temp]),
-                                       'page': ','.join(list(map(str, set([x[1] for x in temp]))))
+                                       'content': self.merge_content(deepcopy(temp)),
+                                       'page': ','.join(list(map(str, set([x[2] for x in temp]))))
                                        })
                         temp = []
 
                     if len(i['text'].strip()) > 0:
                         temp.append([i['text'].strip(), d['page']])
+                        temp.append([i['label'], i['text'].strip(), d['page']])
                 elif i['label'] == 'table':
                     if len(temp) > 0:
                         chunks.append({'type': 'text',
-                                       'content': split.join([x[0] for x in temp]),
-                                       'page': ','.join(list(map(str, set([x[1] for x in temp]))))
+                                       'content': self.merge_content(deepcopy(temp)),
+                                       'page': ','.join(list(map(str, set([x[2] for x in temp]))))
                                        })
                         temp = []
                     del i['label']
@@ -112,8 +143,8 @@ class PDFLayoutLoader:
                 elif i['label'] == 'figure':
                     if len(temp) > 0:
                         chunks.append({'type': 'text',
-                                       'content': split.join([x[0] for x in temp]),
-                                       'page': ','.join(list(map(str, set([x[1] for x in temp]))))
+                                       'content': self.merge_content(deepcopy(temp)),
+                                       'page': ','.join(list(map(str, set([x[2] for x in temp]))))
                                        })
                         temp = []
                     del i['label']
@@ -124,8 +155,8 @@ class PDFLayoutLoader:
 
         if len(temp) > 0:
             chunks.append({'type': 'text',
-                           'content': split.join([x[0] for x in temp]),
-                           'page': ','.join(list(map(str, set([x[1] for x in temp]))))
+                           'content': self.merge_content(deepcopy(temp)),
+                           'page': ','.join(list(map(str, set([x[2] for x in temp]))))
                            })
 
         return chunks
