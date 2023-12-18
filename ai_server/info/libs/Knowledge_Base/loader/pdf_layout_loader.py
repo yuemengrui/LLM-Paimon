@@ -44,6 +44,16 @@ class PDFLayoutLoader:
             logger.error({'EXCEPTION': e})
             return []
 
+    def embedding_token_count(self, sentences):
+
+        try:
+            res = requests.post(url='http://192.168.100.2:12012/ai/embedding/token/count',
+                                json={'model_name': 'bge_large_zh', 'sentences': sentences})
+            return res.json()['token_counts'], res.json()['max_seq_length']
+        except Exception as e:
+            print({'EXCEPTION': e})
+            return None
+
     def merge_line(self, text: str):
         for i in range(len(text) - 1, 0, -1):
             if text[i] == '\n':
@@ -51,6 +61,33 @@ class PDFLayoutLoader:
                     text = text[:i] + text[i + 1:]
 
         return text
+
+    def split_content(self, content_list: List, overlap: int = 1):
+        chunks = []
+        line_list = []
+        for cont in content_list:
+            line_list.extend(cont.split('\n'))
+
+        token_count_res = self.embedding_token_count(line_list)
+
+        if token_count_res is None:
+            return ['\n'.join(content_list)]
+
+        start_index = 0
+        while True:
+            total_token = 0
+            for i in range(start_index, len(line_list)):
+                total_token += token_count_res[0][i]
+
+                if total_token > token_count_res[1]:
+                    chunks.append('\n'.join(line_list[start_index:i]))
+                    start_index = i - overlap
+                    break
+            else:
+                chunks.append('\n'.join(line_list[start_index:]))
+                break
+
+        return chunks
 
     def merge_content(self, data: List):
         """
@@ -71,7 +108,14 @@ class PDFLayoutLoader:
         if len(temp) > 0:
             content_list.append(self.merge_line('\n'.join(deepcopy(temp))))
 
-        return '\n'.join(content_list)
+        token_count_res = self.embedding_token_count(['\n'.join(content_list)])
+        if token_count_res is None:
+            return ['\n'.join(content_list)]
+        else:
+            if token_count_res[0][0] <= token_count_res[1]:
+                return ['\n'.join(content_list)]
+            else:
+                return self.split_content(content_list)
 
     def merge_chunks_one_page(self, docs, split='\n'):
         all_pages = []
@@ -122,42 +166,45 @@ class PDFLayoutLoader:
             for i in d['page_content']:
                 if i['label'] == 'title':
                     if len(temp) > 0:
-                        chunks.append({'type': 'text',
-                                       'content': self.merge_content(deepcopy(temp)),
-                                       'page': ','.join(list(map(str, set([x[2] for x in temp]))))
-                                       })
+                        for c in self.merge_content(deepcopy(temp)):
+                            chunks.append({'type': 'text',
+                                           'content': c,
+                                           'page': ','.join(list(map(str, set([x[2] for x in temp]))))
+                                           })
                         temp = []
 
-                    if len(i['text'].strip()) > 0:
-                        temp.append([i['text'].strip(), d['page']])
+                    if len(i['text'].strip()) > 1:
                         temp.append([i['label'], i['text'].strip(), d['page']])
                 elif i['label'] == 'table':
                     if len(temp) > 0:
-                        chunks.append({'type': 'text',
-                                       'content': self.merge_content(deepcopy(temp)),
-                                       'page': ','.join(list(map(str, set([x[2] for x in temp]))))
-                                       })
+                        for c in self.merge_content(deepcopy(temp)):
+                            chunks.append({'type': 'text',
+                                           'content': c,
+                                           'page': ','.join(list(map(str, set([x[2] for x in temp]))))
+                                           })
                         temp = []
                     del i['label']
                     chunks.append({'type': 'table', 'page': str(d['page']), **i})
                 elif i['label'] == 'figure':
                     if len(temp) > 0:
-                        chunks.append({'type': 'text',
-                                       'content': self.merge_content(deepcopy(temp)),
-                                       'page': ','.join(list(map(str, set([x[2] for x in temp]))))
-                                       })
+                        for c in self.merge_content(deepcopy(temp)):
+                            chunks.append({'type': 'text',
+                                           'content': c,
+                                           'page': ','.join(list(map(str, set([x[2] for x in temp]))))
+                                           })
                         temp = []
                     del i['label']
                     chunks.append({'type': 'figure', 'page': str(d['page']), **i})
                 else:
-                    if len(i['text'].strip()) > 0:
-                        temp.append([i['text'].strip(), d['page']])
+                    if len(i['text'].strip()) > 1:
+                        temp.append([i['label'], i['text'].strip(), d['page']])
 
         if len(temp) > 0:
-            chunks.append({'type': 'text',
-                           'content': self.merge_content(deepcopy(temp)),
-                           'page': ','.join(list(map(str, set([x[2] for x in temp]))))
-                           })
+            for c in self.merge_content(deepcopy(temp)):
+                chunks.append({'type': 'text',
+                               'content': c,
+                               'page': ','.join(list(map(str, set([x[2] for x in temp]))))
+                               })
 
         return chunks
 
