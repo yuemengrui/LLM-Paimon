@@ -21,14 +21,14 @@ LOADER_MAPPING = {
 }
 
 
-def load_file(filepath, ext=None, pdf=False):
+def load_file(filepath, ext=None, pdf=False, embedding_model=None):
     logger.info({'load_file': {'file_path': filepath, 'ext': ext}})
     if not ext:
         ext = filepath.lower().split('.')[-1]
 
     if ext == 'pdf':
         loader = PDFLayoutLoader()
-        docs = loader.load(filepath)
+        docs = loader.load(filepath, embedding_model=embedding_model)
     else:
         if ext in LOADER_MAPPING:
             loader_class, loader_args = LOADER_MAPPING[ext]

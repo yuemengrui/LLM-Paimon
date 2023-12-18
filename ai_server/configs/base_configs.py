@@ -52,7 +52,8 @@ QWENVL_CHAT = 'http://127.0.0.1:5000/ai/llm/chat/qwenvl'
 EMBEDDING_SERVER_PREFIX = 'http://127.0.0.1:6000'  # Embedding Server 地址
 EMBEDDING_SERVER_APIS = {
     'model_list': EMBEDDING_SERVER_PREFIX + '/ai/embedding/model/list',
-    'embedding_text': EMBEDDING_SERVER_PREFIX + '/ai/embedding/text'
+    'embedding_text': EMBEDDING_SERVER_PREFIX + '/ai/embedding/text',
+    'embedding_token_count': EMBEDDING_SERVER_PREFIX + '/ai/embedding/token/count',
 }
 ########################
 

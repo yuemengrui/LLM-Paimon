@@ -27,7 +27,7 @@ def auto_chunk(req, mysql_db, embedding_model):
                 f"background task: {fil.file_hash} import failed: file local path {local_file_path} not exist")
             continue
         file_ext = fil.file_name.lower().split('.')[-1]
-        docs = load_file(filepath=local_file_path, ext=file_ext)
+        docs = load_file(filepath=local_file_path, ext=file_ext, embedding_model=embedding_model)
         logger.info(f"background task: {docs}")
 
         sentences = []

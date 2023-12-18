@@ -8,7 +8,7 @@ import numpy as np
 from typing import List
 from copy import deepcopy
 from mylogger import logger
-from configs import API_TABLE_ANALYSIS, API_OCR_GENERAL, API_LAYOUT_ANALYSIS
+from configs import API_TABLE_ANALYSIS, API_OCR_GENERAL, API_LAYOUT_ANALYSIS, EMBEDDING_SERVER_APIS
 
 
 class PDFLayoutLoader:
@@ -44,11 +44,11 @@ class PDFLayoutLoader:
             logger.error({'EXCEPTION': e})
             return []
 
-    def embedding_token_count(self, sentences):
+    def embedding_token_count(self, sentences: List, embedding_model: str):
 
         try:
-            res = requests.post(url='http://192.168.100.2:12012/ai/embedding/token/count',
-                                json={'model_name': 'bge_large_zh', 'sentences': sentences})
+            res = requests.post(url=EMBEDDING_SERVER_APIS['embedding_token_count'],
+                                json={'model_name': embedding_model, 'sentences': sentences})
             return res.json()['token_counts'], res.json()['max_seq_length']
         except Exception as e:
             print({'EXCEPTION': e})
@@ -62,13 +62,13 @@ class PDFLayoutLoader:
 
         return text
 
-    def split_content(self, content_list: List, overlap: int = 1):
+    def split_content(self, content_list: List, embedding_model: str, overlap: int = 1):
         chunks = []
         line_list = []
         for cont in content_list:
             line_list.extend(cont.split('\n'))
 
-        token_count_res = self.embedding_token_count(line_list)
+        token_count_res = self.embedding_token_count(line_list, embedding_model=embedding_model)
 
         if token_count_res is None:
             return ['\n'.join(content_list)]
@@ -89,7 +89,7 @@ class PDFLayoutLoader:
 
         return chunks
 
-    def merge_content(self, data: List):
+    def merge_content(self, data: List, embedding_model: str):
         """
         :param data: [['type', 'text', 'page']]
         :return:
@@ -108,14 +108,14 @@ class PDFLayoutLoader:
         if len(temp) > 0:
             content_list.append(self.merge_line('\n'.join(deepcopy(temp))))
 
-        token_count_res = self.embedding_token_count(['\n'.join(content_list)])
+        token_count_res = self.embedding_token_count(['\n'.join(content_list)], embedding_model=embedding_model)
         if token_count_res is None:
             return ['\n'.join(content_list)]
         else:
             if token_count_res[0][0] <= token_count_res[1]:
                 return ['\n'.join(content_list)]
             else:
-                return self.split_content(content_list)
+                return self.split_content(content_list, embedding_model=embedding_model)
 
     def merge_chunks_one_page(self, docs, split='\n'):
         all_pages = []
@@ -154,7 +154,7 @@ class PDFLayoutLoader:
 
         return all_pages
 
-    def merge_chunks(self, docs):
+    def merge_chunks(self, docs, embedding_model: str):
         """
         :param docs:
         :param split:
@@ -166,7 +166,7 @@ class PDFLayoutLoader:
             for i in d['page_content']:
                 if i['label'] == 'title':
                     if len(temp) > 0:
-                        for c in self.merge_content(deepcopy(temp)):
+                        for c in self.merge_content(deepcopy(temp), embedding_model=embedding_model):
                             chunks.append({'type': 'text',
                                            'content': c,
                                            'page': ','.join(list(map(str, set([x[2] for x in temp]))))
@@ -177,7 +177,7 @@ class PDFLayoutLoader:
                         temp.append([i['label'], i['text'].strip(), d['page']])
                 elif i['label'] == 'table':
                     if len(temp) > 0:
-                        for c in self.merge_content(deepcopy(temp)):
+                        for c in self.merge_content(deepcopy(temp), embedding_model=embedding_model):
                             chunks.append({'type': 'text',
                                            'content': c,
                                            'page': ','.join(list(map(str, set([x[2] for x in temp]))))
@@ -187,7 +187,7 @@ class PDFLayoutLoader:
                     chunks.append({'type': 'table', 'page': str(d['page']), **i})
                 elif i['label'] == 'figure':
                     if len(temp) > 0:
-                        for c in self.merge_content(deepcopy(temp)):
+                        for c in self.merge_content(deepcopy(temp), embedding_model=embedding_model):
                             chunks.append({'type': 'text',
                                            'content': c,
                                            'page': ','.join(list(map(str, set([x[2] for x in temp]))))
@@ -200,7 +200,7 @@ class PDFLayoutLoader:
                         temp.append([i['label'], i['text'].strip(), d['page']])
 
         if len(temp) > 0:
-            for c in self.merge_content(deepcopy(temp)):
+            for c in self.merge_content(deepcopy(temp), embedding_model=embedding_model):
                 chunks.append({'type': 'text',
                                'content': c,
                                'page': ','.join(list(map(str, set([x[2] for x in temp]))))
@@ -208,7 +208,7 @@ class PDFLayoutLoader:
 
         return chunks
 
-    def load(self, pdf_path: str):
+    def load(self, pdf_path: str, embedding_model: str):
         """
         :param pdf_path:
         :return: [{'page': 0, 'chunks': [
@@ -295,6 +295,6 @@ class PDFLayoutLoader:
 
             docs.append({'page': page + 1, 'page_content': page_content})
 
-        docs = self.merge_chunks(docs)
+        docs = self.merge_chunks(docs, embedding_model=embedding_model)
 
         return docs
