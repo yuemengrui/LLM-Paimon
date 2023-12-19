@@ -9,7 +9,7 @@ from info.utils.api_servers.llm_base import servers_llm_chat, servers_embedding_
 from configs.prompt_template import multiqueryretriever_prompt_template
 
 
-def reciprocal_rank_fusion(docs, weights, k=60, score_threshold=0.1):
+def reciprocal_rank_fusion(docs, weights, k=60, score_threshold=0.01):
     rerank_docs = {}
 
     for i in range(len(weights)):
