@@ -9,6 +9,25 @@ from info.utils.api_servers.llm_base import servers_llm_chat, servers_embedding_
 from configs.prompt_template import multiqueryretriever_prompt_template
 
 
+def reciprocal_rank_fusion(docs, weights, k=60, score_threshold=0.1):
+    rerank_docs = {}
+
+    for i in range(len(weights)):
+        for rank, doc in enumerate(docs[i]):
+
+            if doc['text_hash'] not in rerank_docs:
+                doc.update({'score': 0})
+                rerank_docs[doc['text_hash']] = doc
+
+            rerank_docs[doc['text_hash']]['score'] += weights[i] * (1 / (rank + k))
+
+    related_docs = list(rerank_docs.values())
+
+    related_docs.sort(key=lambda x: x['score'], reverse=True)
+
+    return [x['score'] > score_threshold for x in related_docs]
+
+
 def multiquery_retriever(query, llm_name, embedding_model, text_hash_list):
     queries = [query]
     resp = servers_llm_chat(prompt=multiqueryretriever_prompt_template.format(query=query), model_name=llm_name)
@@ -24,24 +43,24 @@ def multiquery_retriever(query, llm_name, embedding_model, text_hash_list):
             if i not in queries:
                 queries.append(i)
 
-    related_docs = []
-    text_hash_filter = []
-    for q in queries:
-        if embedding_model == 'bge_large_zh':
-            sentences = ["为这个句子生成表示以用于检索相关文章：" + q]
-        else:
-            sentences = [q]
-        embedding = servers_embedding_text(sentences=sentences, model_name=embedding_model).json()['embeddings'][0]
+    weight = 1 / (len(queries) + 1)
+    weights = [weight] * len(queries)
+    weights[0] = (2 * weight)
+    logger.info(f"queries: {queries}")
+    logger.info(f"weights: {weights}")
 
-        results = milvus_db.similarity_search(embedding_model, embedding, expr=f"text_hash in {text_hash_list}",
-                                              threshold=0.85)
+    if embedding_model == 'bge_large_zh':
+        sentences = ["为这个句子生成表示以用于检索相关文章：" + q for q in queries]
+    else:
+        sentences = queries
 
-        for r in results:
-            if r['text_hash'] not in text_hash_filter:
-                text_hash_filter.append(r['text_hash'])
-                related_docs.append(r)
+    embeddings = servers_embedding_text(sentences=sentences, model_name=embedding_model).json()['embeddings']
 
-    related_docs.sort(key=lambda x: x['score'], reverse=True)
+    docs = []
+    for i in range(len(embeddings)):
+        docs.append(milvus_db.similarity_search(embedding_model, embeddings[i], expr=f"text_hash in {text_hash_list}"))
+
+    related_docs = reciprocal_rank_fusion(docs, weights)
 
     logger.info(f"multiquery_retriever: related docs: {related_docs}")
     front = []
@@ -53,7 +72,7 @@ def multiquery_retriever(query, llm_name, embedding_model, text_hash_list):
             front.append(doc['text'])
             flag = 'back'
         else:
-            back.append(doc['text'])
+            back.insert(0, doc['text'])
             flag = 'front'
 
     context = '\n'.join(front + back)

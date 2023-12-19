@@ -118,7 +118,7 @@ class MilvusDB:
         return True
 
     def similarity_search(self, collection_name, query_embedding, k=10, param=None, expr=None,
-                          timeout=None, threshold=0.5, **kwargs):
+                          timeout=None, threshold=0.1, **kwargs):
         if param is None:
             param = {"metric_type": "L2"}
 
@@ -145,11 +145,12 @@ class MilvusDB:
             text_hash = i.entity.get('text_hash')
             if text_hash not in hash_filter:
                 hash_filter.append(text_hash)
-                res.append({'text': i.entity.get('text'), 'text_hash': text_hash, 'distance': i.distance,
-                            'score': sigmoid_normalize_distance(i.distance)})
+                res.append({'text': i.entity.get('text'), 'text_hash': text_hash, 'distance': i.distance})
+                # res.append({'text': i.entity.get('text'), 'text_hash': text_hash, 'distance': i.distance,
+                #             'score': sigmoid_normalize_distance(i.distance)})
         self.logger.info(f"milvus search result: {res}")
-        res.sort(key=lambda x: x['score'], reverse=True)
-        if threshold:
-            res = [x for x in res if x['score'] >= threshold]
-        self.logger.info(f"milvus search result: {res}")
+        # res.sort(key=lambda x: x['score'], reverse=True)
+        # if threshold:
+        #     res = [x for x in res if x['score'] >= threshold]
+        # self.logger.info(f"milvus search result: {res}")
         return res
