@@ -41,7 +41,7 @@ def multiquery_retriever(query, llm_name, embedding_model, text_hash_list):
         logger.info(f"multiquery_retriever: json: {resp_json_data}")
 
         for i in list(resp_json_data.values()):
-            if i not in queries:
+            if isinstance(i, str) and (i not in queries):
                 queries.append(i)
 
     weight = 1 / (len(queries) + 1)
