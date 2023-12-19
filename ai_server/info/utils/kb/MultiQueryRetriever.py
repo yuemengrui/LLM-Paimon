@@ -25,7 +25,7 @@ def reciprocal_rank_fusion(docs, weights, k=60, score_threshold=0.1):
 
     related_docs.sort(key=lambda x: x['score'], reverse=True)
 
-    return [x['score'] > score_threshold for x in related_docs]
+    return [x for x in related_docs if x['score'] > score_threshold]
 
 
 def multiquery_retriever(query, llm_name, embedding_model, text_hash_list):
