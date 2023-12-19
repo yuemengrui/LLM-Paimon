@@ -24,6 +24,7 @@ def reciprocal_rank_fusion(docs, weights, k=60, score_threshold=0.1):
     related_docs = list(rerank_docs.values())
 
     related_docs.sort(key=lambda x: x['score'], reverse=True)
+    logger.info(f"multiquery_retriever: related docs: {related_docs}")
 
     return [x for x in related_docs if x['score'] > score_threshold]
 
